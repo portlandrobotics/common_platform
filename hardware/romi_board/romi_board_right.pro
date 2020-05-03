@@ -1,9 +1,17 @@
-update=Sat 02 May 2020 11:51:56 PM PDT
-last_client=kicad
-[SchematicFrame]
+update=Sat 02 May 2020 05:09:29 PM PDT
 version=1
-[sheetnames]
-1=498f59aa-dbc6-424a-a8bc-27096f54e825:Sheet498f59aa-dbc6-424a-a8bc-27096f54e825
+last_client=pcbnew
+[general]
+version=1
+RootSch=
+BoardNm=
+[cvpcb]
+version=1
+NetIExt=net
+[eeschema]
+version=1
+LibDir=
+[eeschema/libraries]
 [schematic_editor]
 version=1
 PageLayoutDescrFile=
@@ -17,7 +25,7 @@ ERC_TestSimilarLabels=1
 [pcbnew]
 version=1
 PageLayoutDescrFile=
-LastNetListRead=romi_board.net
+LastNetListRead=romi_board_right.net
 CopperLayerCount=2
 BoardThickness=1.6
 AllowMicroVias=0
@@ -31,8 +39,6 @@ MinMicroViaDiameter=0.2
 MinMicroViaDrill=0.09999999999999999
 MinHoleToHole=0.25
 TrackWidth1=0.25
-TrackWidth2=0.25
-TrackWidth3=0.5
 ViaDiameter1=0.8
 ViaDrill1=0.4
 dPairWidth1=0.2
@@ -52,7 +58,7 @@ CopperTextItalic=0
 CopperTextUpright=1
 EdgeCutLineWidth=0.05
 CourtyardLineWidth=0.05
-OthersLineWidth=0.12
+OthersLineWidth=0.15
 OthersTextSizeV=1
 OthersTextSizeH=1
 OthersTextSizeThickness=0.15
@@ -61,7 +67,7 @@ OthersTextUpright=1
 SolderMaskClearance=0.051
 SolderMaskMinWidth=0.25
 SolderPasteClearance=0
-SolderPasteRatio=-0
+SolderPasteRatio=0
 [pcbnew/Layer.F.Cu]
 Name=F.Cu
 Type=0
@@ -233,28 +239,6 @@ Enabled=0
 Name=Default
 Clearance=0.2
 TrackWidth=0.25
-ViaDiameter=0.8
-ViaDrill=0.4
-uViaDiameter=0.3
-uViaDrill=0.1
-dPairWidth=0.2
-dPairGap=0.25
-dPairViaGap=0.25
-[pcbnew/Netclasses/1]
-Name=Motor
-Clearance=0.3
-TrackWidth=1
-ViaDiameter=0.8
-ViaDrill=0.4
-uViaDiameter=0.3
-uViaDrill=0.1
-dPairWidth=0.2
-dPairGap=0.25
-dPairViaGap=0.25
-[pcbnew/Netclasses/2]
-Name=Supply
-Clearance=0.4
-TrackWidth=2
 ViaDiameter=0.8
 ViaDrill=0.4
 uViaDiameter=0.3
