@@ -1,4 +1,4 @@
-update=Sat 02 May 2020 11:51:56 PM PDT
+update=Sun 03 May 2020 07:55:03 PM PDT
 last_client=kicad
 [SchematicFrame]
 version=1
@@ -33,6 +33,7 @@ MinHoleToHole=0.25
 TrackWidth1=0.25
 TrackWidth2=0.25
 TrackWidth3=0.5
+TrackWidth4=1
 ViaDiameter1=0.8
 ViaDrill1=0.4
 dPairWidth1=0.2
