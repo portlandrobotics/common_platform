@@ -80,17 +80,6 @@ F 3 "~" H 1200 2950 50  0001 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L Switch:SW_SPST SW1
-U 1 1 5EAE3A55
-P 700 -1250
-F 0 "SW1" H 700 -1015 50  0000 C CNN
-F 1 "SW_SPST" H 700 -1106 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 700 -1250 50  0001 C CNN
-F 3 "~" H 700 -1250 50  0001 C CNN
-	1    700  -1250
-	0    -1   -1   0   
-$EndComp
-$Comp
 L Device:LED D1
 U 1 1 5EAE4A3D
 P 4750 1400
@@ -1339,29 +1328,9 @@ F 3 "~" H 1150 -1550 50  0001 C CNN
 	1    1150 -1550
 	1    0    0    1   
 $EndComp
-$Comp
-L Device:R_US R10
-U 1 1 5EED3C96
-P 700 -1750
-F 0 "R10" H 768 -1704 50  0000 L CNN
-F 1 "R_US" H 768 -1795 50  0000 L CNN
-F 2 "Resistor_THT:R_Axial_DIN0309_L9.0mm_D3.2mm_P2.54mm_Vertical" V 740 -1760 50  0001 C CNN
-F 3 "~" H 700 -1750 50  0001 C CNN
-	1    700  -1750
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	700  -1900 1250 -1900
 Connection ~ 1250 -1900
 Wire Wire Line
 	1250 -1900 1250 -1750
-Wire Wire Line
-	950  -1550 700  -1550
-Wire Wire Line
-	700  -1550 700  -1600
-Wire Wire Line
-	700  -1450 700  -1550
-Connection ~ 700  -1550
 $Comp
 L power:GND #PWR0107
 U 1 1 5EF198FA
@@ -1411,17 +1380,6 @@ F 3 "~" H 1900 5450 50  0001 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L Switch:SW_SPST SW2
-U 1 1 5EF74919
-P 2550 -1300
-F 0 "SW2" H 2550 -1065 50  0000 C CNN
-F 1 "SW_SPST" H 2550 -1156 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 2550 -1300 50  0001 C CNN
-F 3 "~" H 2550 -1300 50  0001 C CNN
-	1    2550 -1300
-	0    -1   -1   0   
-$EndComp
-$Comp
 L power:+BATT #PWR0108
 U 1 1 5EF74923
 P 3100 -2200
@@ -1454,29 +1412,9 @@ F 3 "~" H 3000 -1600 50  0001 C CNN
 	1    3000 -1600
 	1    0    0    1   
 $EndComp
-$Comp
-L Device:R_US R11
-U 1 1 5EF7494B
-P 2550 -1800
-F 0 "R11" H 2618 -1754 50  0000 L CNN
-F 1 "R_US" H 2618 -1845 50  0000 L CNN
-F 2 "Resistor_THT:R_Axial_DIN0309_L9.0mm_D3.2mm_P2.54mm_Vertical" V 2590 -1810 50  0001 C CNN
-F 3 "~" H 2550 -1800 50  0001 C CNN
-	1    2550 -1800
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	2550 -1950 3100 -1950
 Connection ~ 3100 -1950
 Wire Wire Line
 	3100 -1950 3100 -1800
-Wire Wire Line
-	2800 -1600 2550 -1600
-Wire Wire Line
-	2550 -1600 2550 -1650
-Wire Wire Line
-	2550 -1500 2550 -1600
-Connection ~ 2550 -1600
 $Comp
 L power:GND #PWR0111
 U 1 1 5EF7495D
@@ -1594,4 +1532,183 @@ Wire Wire Line
 	2650 1400 3850 1400
 Wire Wire Line
 	2300 1400 2650 1400
+$Comp
+L Switch:SW_SPDT SW1
+U 1 1 5EE0FF1A
+P 650 -1550
+F 0 "SW1" H 650 -1265 50  0000 C CNN
+F 1 "SW_SPDT" H 650 -1356 50  0000 C CNN
+F 2 "teensy:Switch" H 650 -1550 50  0001 C CNN
+F 3 "~" H 650 -1550 50  0001 C CNN
+	1    650  -1550
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	850  -1550 950  -1550
+Wire Wire Line
+	400  -1900 400  -1650
+Wire Wire Line
+	400  -1650 450  -1650
+Wire Wire Line
+	400  -1900 1250 -1900
+Wire Wire Line
+	450  -1450 400  -1450
+Wire Wire Line
+	400  -1450 400  -1050
+Wire Wire Line
+	400  -1050 700  -1050
+$Comp
+L Switch:SW_SPDT SW2
+U 1 1 5EE5D69E
+P 2500 -1600
+F 0 "SW2" H 2500 -1315 50  0000 C CNN
+F 1 "SW_SPDT" H 2500 -1406 50  0000 C CNN
+F 2 "teensy:Switch" H 2500 -1600 50  0001 C CNN
+F 3 "~" H 2500 -1600 50  0001 C CNN
+	1    2500 -1600
+	-1   0    0    -1  
+$EndComp
+Wire Wire Line
+	2250 -1950 2250 -1700
+Wire Wire Line
+	2250 -1700 2300 -1700
+Wire Wire Line
+	2250 -1950 3100 -1950
+Wire Wire Line
+	2300 -1500 2200 -1500
+Wire Wire Line
+	2200 -1500 2200 -1100
+Wire Wire Line
+	2200 -1100 2550 -1100
+Wire Wire Line
+	2700 -1600 2800 -1600
+$Comp
+L Connector:USB_B_Micro J4
+U 1 1 5EF4412C
+P 850 4500
+F 0 "J4" H 907 4967 50  0000 C CNN
+F 1 "USB_B_Micro" H 907 4876 50  0000 C CNN
+F 2 "Connector_USB:USB_Micro-B_Molex_47346-0001" H 1000 4450 50  0001 C CNN
+F 3 "~" H 1000 4450 50  0001 C CNN
+	1    850  4500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1150 4300 1350 4300
+NoConn ~ 1150 4500
+NoConn ~ 1150 4600
+NoConn ~ 1150 4700
+NoConn ~ 750  4900
+Wire Wire Line
+	850  4900 850  5050
+$Comp
+L power:GND #PWR016
+U 1 1 5EFC4387
+P 850 5050
+F 0 "#PWR016" H 850 4800 50  0001 C CNN
+F 1 "GND" H 855 4877 50  0000 C CNN
+F 2 "" H 850 5050 50  0001 C CNN
+F 3 "" H 850 5050 50  0001 C CNN
+	1    850  5050
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:+5V #PWR017
+U 1 1 5EFC5FA9
+P 1350 4300
+F 0 "#PWR017" H 1350 4150 50  0001 C CNN
+F 1 "+5V" H 1365 4473 50  0000 C CNN
+F 2 "" H 1350 4300 50  0001 C CNN
+F 3 "" H 1350 4300 50  0001 C CNN
+	1    1350 4300
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H4
+U 1 1 5EFE0679
+P 3750 7600
+F 0 "H4" H 3850 7646 50  0000 L CNN
+F 1 "MountingHole" H 3850 7555 50  0000 L CNN
+F 2 "MountingHole:MountingHole_2.5mm" H 3750 7600 50  0001 C CNN
+F 3 "~" H 3750 7600 50  0001 C CNN
+	1    3750 7600
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H3
+U 1 1 5EFE4BA3
+P 3750 7400
+F 0 "H3" H 3850 7446 50  0000 L CNN
+F 1 "MountingHole" H 3850 7355 50  0000 L CNN
+F 2 "MountingHole:MountingHole_2.5mm" H 3750 7400 50  0001 C CNN
+F 3 "~" H 3750 7400 50  0001 C CNN
+	1    3750 7400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H2
+U 1 1 5EFE4F90
+P 3750 7200
+F 0 "H2" H 3850 7246 50  0000 L CNN
+F 1 "MountingHole" H 3850 7155 50  0000 L CNN
+F 2 "MountingHole:MountingHole_2.5mm" H 3750 7200 50  0001 C CNN
+F 3 "~" H 3750 7200 50  0001 C CNN
+	1    3750 7200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H1
+U 1 1 5EFE5398
+P 3750 7000
+F 0 "H1" H 3850 7046 50  0000 L CNN
+F 1 "MountingHole" H 3850 6955 50  0000 L CNN
+F 2 "MountingHole:MountingHole_2.5mm" H 3750 7000 50  0001 C CNN
+F 3 "~" H 3750 7000 50  0001 C CNN
+	1    3750 7000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H5
+U 1 1 5EFE5739
+P 4550 7000
+F 0 "H5" H 4650 7046 50  0000 L CNN
+F 1 "MountingHole" H 4650 6955 50  0000 L CNN
+F 2 "teensy:MountingHole_6mm_passthrough" H 4550 7000 50  0001 C CNN
+F 3 "~" H 4550 7000 50  0001 C CNN
+	1    4550 7000
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H8
+U 1 1 5EFE5AE4
+P 4550 7650
+F 0 "H8" H 4650 7696 50  0000 L CNN
+F 1 "MountingHole" H 4650 7605 50  0000 L CNN
+F 2 "teensy:MountingHole_6mm_passthrough" H 4550 7650 50  0001 C CNN
+F 3 "~" H 4550 7650 50  0001 C CNN
+	1    4550 7650
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H7
+U 1 1 5EFE5E7A
+P 4550 7400
+F 0 "H7" H 4650 7446 50  0000 L CNN
+F 1 "MountingHole" H 4650 7355 50  0000 L CNN
+F 2 "teensy:MountingHole_6mm_passthrough" H 4550 7400 50  0001 C CNN
+F 3 "~" H 4550 7400 50  0001 C CNN
+	1    4550 7400
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H6
+U 1 1 5EFE6461
+P 4550 7200
+F 0 "H6" H 4650 7246 50  0000 L CNN
+F 1 "MountingHole" H 4650 7155 50  0000 L CNN
+F 2 "teensy:MountingHole_6mm_passthrough" H 4550 7200 50  0001 C CNN
+F 3 "~" H 4550 7200 50  0001 C CNN
+	1    4550 7200
+	1    0    0    -1  
+$EndComp
 $EndSCHEMATC
