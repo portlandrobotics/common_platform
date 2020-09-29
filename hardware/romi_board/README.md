@@ -27,3 +27,5 @@ We recommend using socket headers on the top board for all of the breakout board
 - Pay attention to the orientation of the MOSFETs
 - Use 2M ohm resistor for the battery voltage resistor divider (R1) if you use the 6 AA batteries.  If you use higher voltage batteries (2 LiPo batteries for example) then use a 3M ohm resistor.
 - Cut trace on teensy for battery power.  See the note "Cut to separate VIN from VUSB" on the "Teensy 4.0 Back Side" image on this [page](https://www.pjrc.com/store/teensy40.html).
+- If you want to mount a Raspberry Pi on the robot, this is how to use standoffs to do so:  
+![pi](pi_mount.jpg)
