@@ -1,19 +1,5 @@
 ![robot](robot.jpeg)
 
-## Version 1 rework
-
-V1.0 of this design has one design error.  If you make new boards, please use the corrected version (V1.1).  The intial run of PCBs from V1.0 can be identified by the number 3047184E_Y8-200715 on them.  These board need the following rework to correct swicth the positive and negative battery terminals, which were incorrectly connected.
-  - All the rework is on the bottom board.  The correct polarity for the battery tabs is as shown: !<br/>[terminals](terminals.jpeg)
-  - The two battery tab slots indicated need to be modified:  
-  ![rework1](rework1.jpeg)
-  - Slot 1 needs to be disconnected from the ground plane by cutting the three small traces connected to it:  
- ![rework2](rework2.jpeg)
-  - Drill a small hole through the board near Slot 2, scrape the solder mask off of a neighboring patch, solder a wire to the exposed ground plane and feed the wire through the hole and position it next to Slot 2 on the top side of the board:  
-  ![rework3](rework3.jpeg)
-  - On the top side of the board, cut the trace, scrape the solder mask off the trace and solder a wire onto the trace as shown:  
-  ![rework4](rework4.jpeg)
-  - Position both wires next to the appropriate slots as shown above and solder the wires to the battery tabs when those tabs are inserted into the slots during the assembly.
-
 ## Assembly Notes
 
 - In general, follow the instructions in the Romi chassis assembly [guide](https://www.pololu.com/docs/0J68/4).  Note that wheel encoders should be installed as shown in those instructions and will plug into the bottom board.
