@@ -38,19 +38,8 @@ $EndComp
 $Comp
 L Connector_Generic:Conn_01x01 B2P1
 U 1 1 5EB35877
-P 5800 4000
-F 0 "B2P1" H 5950 4050 50  0000 C CNN
-F 1 "BTAB" H 5950 3950 50  0000 C CNN
-F 2 "teensy:romi_battery_tab" H 5800 4000 50  0001 C CNN
-F 3 "~" H 5800 4000 50  0001 C CNN
-	1    5800 4000
-	-1   0    0    -1  
-$EndComp
-$Comp
-L Connector_Generic:Conn_01x01 B4P1
-U 1 1 5EB3A588
 P 5800 4400
-F 0 "B4P1" H 5950 4450 50  0000 C CNN
+F 0 "B2P1" H 5950 4450 50  0000 C CNN
 F 1 "BTAB" H 5950 4350 50  0000 C CNN
 F 2 "teensy:romi_battery_tab" H 5800 4400 50  0001 C CNN
 F 3 "~" H 5800 4400 50  0001 C CNN
@@ -58,14 +47,25 @@ F 3 "~" H 5800 4400 50  0001 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
+L Connector_Generic:Conn_01x01 B4P1
+U 1 1 5EB3A588
+P 5800 4000
+F 0 "B4P1" H 5950 4050 50  0000 C CNN
+F 1 "BTAB" H 5950 3950 50  0000 C CNN
+F 2 "teensy:romi_battery_tab" H 5800 4000 50  0001 C CNN
+F 3 "~" H 5800 4000 50  0001 C CNN
+	1    5800 4000
+	-1   0    0    -1  
+$EndComp
+$Comp
 L Connector_Generic:Conn_01x01 B4M1
 U 1 1 5EB3A889
-P 5800 4600
-F 0 "B4M1" H 5950 4650 50  0000 C CNN
-F 1 "BTAB" H 5950 4550 50  0000 C CNN
-F 2 "teensy:romi_battery_tab" H 5800 4600 50  0001 C CNN
-F 3 "~" H 5800 4600 50  0001 C CNN
-	1    5800 4600
+P 5800 4200
+F 0 "B4M1" H 5950 4250 50  0000 C CNN
+F 1 "BTAB" H 5950 4150 50  0000 C CNN
+F 2 "teensy:romi_battery_tab" H 5800 4200 50  0001 C CNN
+F 3 "~" H 5800 4200 50  0001 C CNN
+	1    5800 4200
 	-1   0    0    -1  
 $EndComp
 Wire Wire Line
@@ -101,20 +101,7 @@ Wire Wire Line
 Wire Wire Line
 	6100 4000 6100 3900
 Wire Wire Line
-	6000 4600 6100 4600
-Wire Wire Line
 	6100 4600 6100 4650
-$Comp
-L Connector_Generic:Conn_01x01 B2M1
-U 1 1 5EB39EE4
-P 5800 4200
-F 0 "B2M1" H 5950 4250 50  0000 C CNN
-F 1 "BTAB" H 5950 4150 50  0000 C CNN
-F 2 "teensy:romi_battery_tab" H 5800 4200 50  0001 C CNN
-F 3 "~" H 5800 4200 50  0001 C CNN
-	1    5800 4200
-	-1   0    0    -1  
-$EndComp
 Text Label 6100 4300 0    50   ~ 0
 VBAT_MID
 $Comp
@@ -437,5 +424,18 @@ F 2 "MountingHole:MountingHole_6mm" H 4950 7100 50  0001 C CNN
 F 3 "~" H 4950 7100 50  0001 C CNN
 	1    4950 7100
 	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6000 4600 6100 4600
+$Comp
+L Connector_Generic:Conn_01x01 B2M1
+U 1 1 5EB39EE4
+P 5800 4600
+F 0 "B2M1" H 5950 4650 50  0000 C CNN
+F 1 "BTAB" H 5950 4550 50  0000 C CNN
+F 2 "teensy:romi_battery_tab" H 5800 4600 50  0001 C CNN
+F 3 "~" H 5800 4600 50  0001 C CNN
+	1    5800 4600
+	-1   0    0    -1  
 $EndComp
 $EndSCHEMATC
