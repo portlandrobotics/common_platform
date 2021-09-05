@@ -14,7 +14,54 @@ const int PIN_RD_OCM  = 21;
 const int PIN_RENCB   = 22;
 const int PIN_RENCA   = 23;
 
+#define PRINT_MOTION 1
+
+
+#include <Arduino.h>
+#if PRINT_MOTION
 #include <Wire.h>
+#endif
+#include <micro_ros_arduino.h>
+
+#include <stdio.h>
+#include <rcl/rcl.h>
+#include <rcl/error_handling.h>
+#include <rclc/rclc.h>
+#include <rclc/executor.h>
+
+#include <geometry_msgs/msg/twist.h>
+
+rcl_subscription_t subscriber;
+geometry_msgs__msg__Twist msg;
+rclc_executor_t executor;
+rcl_allocator_t allocator;
+rclc_support_t support;
+rcl_node_t node;
+
+#define LED_PIN 13
+
+#define RENC 0
+#define RMOT RENC
+#define LENC 1
+#define LMOT LENC
+
+#define RCCHECK(fn)                      \
+	{                                    \
+		rcl_ret_t temp_rc = fn;          \
+		if ((temp_rc != RCL_RET_OK))     \
+		{                                \
+			error_loop();                \
+		}                                \
+	}
+#define RCSOFTCHECK(fn)              \
+	{                                \
+		rcl_ret_t temp_rc = fn;      \
+		if ((temp_rc != RCL_RET_OK)) \
+		{                            \
+			error_loop();            \
+		}                            \
+	}
+
 
 
 class PidControl {
@@ -64,8 +111,10 @@ public:
     if(targetSpeed != speed) {
       targetSpeed=speed;
       pid.errorSum=0;
-      Serial.print("nsp ");
-      Serial.println(speed);
+#if 1
+      SerialUSB1.print("nsp ");
+      SerialUSB1.println(speed);
+#endif
     }
   }
   void resetCounter() { counter=0; lastCounter=0; }
@@ -73,30 +122,30 @@ public:
   void readCurrent() {
     auto ocm = analogRead(ciPinCurrent);
     // .5V per amp, 3.3V ref, 1024 counts, so 3.3V / 1024 counts / .5V/A = 6.4mA/count
-    //Serial.print(ocm);
+    //SerialUSB1.print(ocm);
     static auto lastOcm = 0;
     if(lastOcm != 0 || ocm != 0) {
-      Serial.print("Left motor current: ");
-      Serial.print(ocm*64/10);
-      Serial.println(" mA");
+      SerialUSB1.print("Left motor current: ");
+      SerialUSB1.print(ocm*64/10);
+      SerialUSB1.println(" mA");
     }
     lastOcm = ocm;
   }
   void readSensor() {
-    
+
       int8_t enc = 0;
       if(digitalRead(ciPinEncA) == HIGH)
         enc |= 1;
       if(digitalRead(ciPinEncB)==HIGH)
         enc ^= 3;
-      
-    
+
+
       if(enc != lastEnc) {
         // 1440 counts per revolution
         // 70mm diameter
         // 1 revolution = Pi * 70mm = 220 mm / rev
         // 1 count = Pi * 70mm / 1440 = 153 um / count
-        
+
         auto now = micros();
         auto dt = now-lastEncTime;
         auto dir = enc-lastEnc-2;
@@ -104,19 +153,19 @@ public:
           dir +=4;
         counter += dir;
         float speed = 153./dt * dir; // micrometers / microsecond => m/s
-        
+
         lastSpeed=speed;
         lastEnc=enc;
         lastEncTime=now;
         sawEdge=true;
-        
-#if 0
-        Serial.print("enc ");
-        Serial.print(enc);
-        Serial.print(" ");
-        Serial.print(dir);
-        Serial.print(" ");
-        Serial.println(speed);
+
+#if 1
+        SerialUSB1.print("enc ");
+        SerialUSB1.print(enc);
+        SerialUSB1.print(" ");
+        SerialUSB1.print(dir);
+        SerialUSB1.print(" ");
+        SerialUSB1.println(speed);
 #endif
       }
   }
@@ -131,39 +180,39 @@ public:
     float err = targetSpeed-lastSpeed;
     //mpwm += err * P;
     mpwm += pid.update(err);
-    //Serial.print(" ");
-    //Serial.println(counter-lastCounter);
+    //SerialUSB1.print(" ");
+    //SerialUSB1.println(counter-lastCounter);
     lastCounter=counter;
-    
+
     int setspeed = mpwm*255;
     if(setspeed > 255)
       setspeed=255;
      if(setspeed< -255)
       setspeed=-255;
 
-    //static 
+    //static
     if(msgcnt++>100 && setspeed != 0) {
-      Serial.print(' ');
-      Serial.print((ciPinCurrent==PIN_LD_OCM)?'L':'R');
-      //Serial.print(ciPinCurrent);
-      Serial.print(" update ");
-      Serial.print(targetSpeed);
-      Serial.print(" ");
-      Serial.print(lastSpeed);
-      Serial.print(" ");
-      Serial.print(err);
-      Serial.print(" ");
-      //Serial.println(setspeed);
+      SerialUSB1.print(' ');
+      SerialUSB1.print((ciPinCurrent==PIN_LD_OCM)?'L':'R');
+      //SerialUSB1.print(ciPinCurrent);
+      SerialUSB1.print(" update ");
+      SerialUSB1.print(targetSpeed);
+      SerialUSB1.print(" ");
+      SerialUSB1.print(lastSpeed);
+      SerialUSB1.print(" ");
+      SerialUSB1.print(err);
+      SerialUSB1.print(" ");
+      //SerialUSB1.println(setspeed);
       char message[512];
       sprintf(message,"U2 %f %d, %f - %f",mpwm,setspeed,targetSpeed,lastSpeed);
-      Serial.println(message);
+      SerialUSB1.println(message);
       msgcnt=0;
     }
     if(targetSpeed==0) {
       mpwm=0;
       setspeed=0;
     }
-      
+
      if(setspeed >= 0) {
       analogWrite(ciPwmA, setspeed);
       analogWrite(ciPwmB, 0);
@@ -173,7 +222,7 @@ public:
     }
   }
 
-  
+
 };
 
 class Point {
@@ -209,8 +258,8 @@ class Motion {
     float AR = (newRight-lastRight)*meterspercount;
     char pbuf[512];
     sprintf(pbuf,"move %f,%f",AL,AR);
-    Serial.println(pbuf);
-    //Serial.println(AL);
+    // SerialUSB1.println(pbuf);
+    //SerialUSB1.println(AL);
     lastLeft=newLeft;
     lastRight=newRight;
 
@@ -222,9 +271,9 @@ class Motion {
     }
     else {
       float radius = track/2*(AR+AL)/(AR-AL);
-      //Serial.println(radius);
+      //SerialUSB1.println(radius);
       float insttheta = (AR-AL)/track;
-      //Serial.println(insttheta);
+      //SerialUSB1.println(insttheta);
       Point RC(location);
       RC.x -= radius * sin(theta);
       RC.y += radius * cos(theta);
@@ -242,9 +291,32 @@ class Motion {
   void print() {
     char buf[256];
     sprintf(buf,"Pose: %f,%f %f",location.x,location.y,theta*180/M_PI);
-    Serial.println(buf);
+    // SerialUSB1.println(buf);
   }
 };
+
+void error_loop()
+{
+	while (1)
+	{
+		digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+		delay(100);
+	}
+}
+
+//twist message cb
+void subscription_callback(const void *msgin)
+{
+	const geometry_msgs__msg__Twist *msg = (const geometry_msgs__msg__Twist *)msgin;
+	const float linear_vel = msg->linear.x;
+	const float angular_vel = msg->angular.z;
+	digitalWrite(LED_PIN, (msg->linear.x == 0) ? LOW : HIGH);
+  SerialUSB1.println("TWIST");
+	// Do differential drive inverse kinematics
+	// goalSpeed[0] = linear_vel + 0.5 * angular_vel * WHEEL_BASE;  // right wheel
+	// goalSpeed[1] = linear_vel - 0.5 * angular_vel * WHEEL_BASE;  // Left wheel
+  parseTwist(msg);
+}
 
 
 //globals
@@ -257,6 +329,32 @@ PidControl differential;
 Motion motion;
 
 void setup() {
+	set_microros_transports();
+	pinMode(LED_PIN, OUTPUT);
+	digitalWrite(LED_PIN, HIGH);
+
+	delay(2000);
+
+	allocator = rcl_get_default_allocator();
+
+	//create init_options
+	RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+	// SerialUSB1.println("Here3");
+
+	// create node
+	RCCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
+
+	// create subscriber
+	RCCHECK(rclc_subscription_init_default(
+		&subscriber,
+		&node,
+		ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+		"cmd_vel"));
+
+	// create executor
+	RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+	RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
+
   leftMotor.pid.P = .02;
   leftMotor.pid.I = 0;
   leftMotor.pid.D = 0;
@@ -271,7 +369,7 @@ void setup() {
   pinMode(PIN_LENCB, INPUT_PULLUP);
   pinMode(PIN_RENCA, INPUT_PULLUP);
   pinMode(PIN_RENCB, INPUT_PULLUP);
-  
+
   // Enable motor drive outputs
   pinMode(PIN_XD_EN, OUTPUT);
   pinMode(PIN_RD_PWM1, OUTPUT);
@@ -292,16 +390,16 @@ void setup() {
   Wire.write(0x6b);
   Wire.write(0x80);
   auto rv = Wire.endTransmission(true);
-  Serial.print("setup returned ");
-  Serial.println(rv);
+  SerialUSB1.print("setup returned ");
+  SerialUSB1.println(rv);
 
   Wire.begin();
   Wire.beginTransmission(0x68);
   Wire.write(0x6b);
   Wire.write(0x00);
   rv = Wire.endTransmission(true);
-  Serial.print("setup returned ");
-  Serial.println(rv);
+  SerialUSB1.print("setup returned ");
+  SerialUSB1.println(rv);
 
 }
 
@@ -311,6 +409,31 @@ bool cmdDrive=false;
 float topspeed=.1;
 float targetangle=0;
 bool move = false;
+
+void parseTwist(const geometry_msgs__msg__Twist *msg) {
+	const float linear_vel = msg->linear.x;
+	const float angular_vel = msg->angular.z;
+  float tmp;
+  if (linear_vel > 0) {
+      tmp = linear_vel/motion.meterspercount;
+      leftTarget  += tmp;
+      rightTarget += tmp;
+      targetangle=angular_vel;
+      move=true;
+  } else if (angular_vel > 0) {
+      tmp = (angular_vel/180.)*M_PI*motion.track/2./motion.meterspercount;
+      leftTarget  += tmp;
+      rightTarget -= tmp;
+      move=false;
+  } else if (angular_vel < 0) {
+      tmp = (angular_vel/180.)*M_PI*motion.track/2./motion.meterspercount;
+      leftTarget  -= tmp;
+      rightTarget += tmp;
+      move=false;
+  } else {
+      move=false;
+  }
+}
 
 void parseCommand(const char * const cmd) {
   if(strchr("LRD",cmd[0])) {
@@ -361,11 +484,11 @@ void parseCommand(const char * const cmd) {
     topspeed=atof(cmd+1);
   }
   else {
-    Serial.println("Error");
+    SerialUSB1.println("Error");
     return;
   }
-  
-  Serial.println("OK");
+
+  SerialUSB1.println("OK");
 }
 
 void printStatus() {
@@ -373,7 +496,7 @@ void printStatus() {
   sprintf(buf,"LT %ld, LC %ld, RT %ld, RC %ld %f",
     leftTarget,leftMotor.getCounter(),
     rightTarget,rightMotor.getCounter(),leftMotor.pid.P);
-  Serial.println(buf);
+  SerialUSB1.println(buf);
 }
 
 void drivecontrol(MotorControl * mc, int target,float corr) {
@@ -407,7 +530,7 @@ void loop() {
   static size_t cmdbufpos=0;
   static float corr=0;
 #if 0
-  return;  
+  return;
 #endif
 
   leftMotor.readSensor();
@@ -418,10 +541,12 @@ void loop() {
     motion.update(leftMotor.getCounter(),rightMotor.getCounter());
     if(move) {
       corr=differential.update(motion.theta-targetangle);
-      //Serial.println(motion.theta-targetangle);
+      //SerialUSB1.println(motion.theta-targetangle);
       if(abs(corr)>0.01) {
-        Serial.print("corr: ");
-        Serial.println(corr);
+#if 1
+        SerialUSB1.print("corr: ");
+        SerialUSB1.println(corr);
+#endif
       }
     } else {
       corr =0;
@@ -446,13 +571,13 @@ void loop() {
 
   static auto nextVoltageUpdate = nowMicros;
   if(nowMicros >= nextVoltageUpdate) {
-    Serial.print("Voltage: ");
-     Serial.println(analogRead(PIN_VBAT));
+    SerialUSB1.print("Voltage: ");
+     SerialUSB1.println(analogRead(PIN_VBAT));
      nextVoltageUpdate = nowMicros + 10000000;
   }
 
-  while (Serial.available()) {
-    char c = Serial.read();
+  while (SerialUSB1.available()) {
+    char c = SerialUSB1.read();
     if(c == '\n' || c == '\r') {
       cmdbuf[cmdbufpos]=0;
       parseCommand(cmdbuf);
@@ -462,4 +587,5 @@ void loop() {
       cmdbuf[cmdbufpos++]=c;
     }
   }
+	RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
 }
