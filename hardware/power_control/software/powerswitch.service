@@ -1,0 +1,12 @@
+[Unit]
+Description=monitor power circuit state
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/powerswitch
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+
