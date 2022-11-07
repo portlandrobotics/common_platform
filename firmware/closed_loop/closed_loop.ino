@@ -45,24 +45,19 @@ rcl_node_t node;
 #define LENC 1
 #define LMOT LENC
 
-#define RCCHECK(fn)                      \
-	{                                    \
-		rcl_ret_t temp_rc = fn;          \
-		if ((temp_rc != RCL_RET_OK))     \
-		{                                \
-			error_loop();                \
-		}                                \
-	}
-#define RCSOFTCHECK(fn)              \
-	{                                \
-		rcl_ret_t temp_rc = fn;      \
-		if ((temp_rc != RCL_RET_OK)) \
-		{                            \
-			error_loop();            \
-		}                            \
-	}
+#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){return false;}}
+#define EXECUTE_EVERY_N_MS(MS, X)  do { \
+  static volatile int64_t init = -1; \
+  if (init == -1) { init = uxr_millis();} \
+  if (uxr_millis() - init > MS) { X; init = uxr_millis();} \
+} while (0)\
 
-
+enum states {
+  WAITING_AGENT,
+  AGENT_AVAILABLE,
+  AGENT_CONNECTED,
+  AGENT_DISCONNECTED
+} state;
 
 class PidControl {
 public:
@@ -125,9 +120,9 @@ public:
     //SerialUSB1.print(ocm);
     static auto lastOcm = 0;
     if(lastOcm != 0 || ocm != 0) {
-      SerialUSB1.print("Left motor current: ");
-      SerialUSB1.print(ocm*64/10);
-      SerialUSB1.println(" mA");
+//      SerialUSB1.print("Left motor current: ");
+//      SerialUSB1.print(ocm*64/10);
+//      SerialUSB1.println(" mA");
     }
     lastOcm = ocm;
   }
@@ -159,7 +154,7 @@ public:
         lastEncTime=now;
         sawEdge=true;
 
-#if 1
+#if 0
         SerialUSB1.print("enc ");
         SerialUSB1.print(enc);
         SerialUSB1.print(" ");
@@ -192,20 +187,20 @@ public:
 
     //static
     if(msgcnt++>100 && setspeed != 0) {
-      SerialUSB1.print(' ');
-      SerialUSB1.print((ciPinCurrent==PIN_LD_OCM)?'L':'R');
+      //SerialUSB1.print(' ');
+      //SerialUSB1.print((ciPinCurrent==PIN_LD_OCM)?'L':'R');
       //SerialUSB1.print(ciPinCurrent);
-      SerialUSB1.print(" update ");
-      SerialUSB1.print(targetSpeed);
-      SerialUSB1.print(" ");
-      SerialUSB1.print(lastSpeed);
-      SerialUSB1.print(" ");
-      SerialUSB1.print(err);
-      SerialUSB1.print(" ");
+      //SerialUSB1.print(" update ");
+      //SerialUSB1.print(targetSpeed);
+      //SerialUSB1.print(" ");
+      //SerialUSB1.print(lastSpeed);
+      //SerialUSB1.print(" ");
+      //SerialUSB1.print(err);
+      //SerialUSB1.print(" ");
       //SerialUSB1.println(setspeed);
       char message[512];
       sprintf(message,"U2 %f %d, %f - %f",mpwm,setspeed,targetSpeed,lastSpeed);
-      SerialUSB1.println(message);
+      //SerialUSB1.println(message);
       msgcnt=0;
     }
     if(targetSpeed==0) {
@@ -311,7 +306,7 @@ void subscription_callback(const void *msgin)
 	const float linear_vel = msg->linear.x;
 	const float angular_vel = msg->angular.z;
 	digitalWrite(LED_PIN, (msg->linear.x == 0) ? LOW : HIGH);
-  SerialUSB1.println("TWIST");
+//  SerialUSB1.println("TWIST");
 	// Do differential drive inverse kinematics
 	// goalSpeed[0] = linear_vel + 0.5 * angular_vel * WHEEL_BASE;  // right wheel
 	// goalSpeed[1] = linear_vel - 0.5 * angular_vel * WHEEL_BASE;  // Left wheel
@@ -328,18 +323,12 @@ PidControl differential;
 
 Motion motion;
 
-void setup() {
-	set_microros_transports();
-	pinMode(LED_PIN, OUTPUT);
-	digitalWrite(LED_PIN, HIGH);
+bool create_entities()
+{
+  allocator = rcl_get_default_allocator();
 
-	delay(2000);
-
-	allocator = rcl_get_default_allocator();
-
-	//create init_options
-	RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-	// SerialUSB1.println("Here3");
+  // create init_options
+  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
 	// create node
 	RCCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
@@ -354,6 +343,29 @@ void setup() {
 	// create executor
 	RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
 	RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
+
+
+  return true;
+}
+
+void destroy_entities()
+{
+  rmw_context_t * rmw_context = rcl_context_get_rmw_context(&support.context);
+  (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
+
+  rcl_subscription_fini(&subscriber, &node);
+  rclc_executor_fini(&executor);
+  rcl_node_fini(&node);
+  rclc_support_fini(&support);
+}
+
+void setup() {
+	set_microros_transports();
+	pinMode(LED_PIN, OUTPUT);
+	digitalWrite(LED_PIN, LOW);
+
+	delay(2000);
+  state = WAITING_AGENT;
 
   leftMotor.pid.P = .02;
   leftMotor.pid.I = 0;
@@ -390,16 +402,16 @@ void setup() {
   Wire.write(0x6b);
   Wire.write(0x80);
   auto rv = Wire.endTransmission(true);
-  SerialUSB1.print("setup returned ");
-  SerialUSB1.println(rv);
+//  SerialUSB1.print("setup returned ");
+//  SerialUSB1.println(rv);
 
   Wire.begin();
   Wire.beginTransmission(0x68);
   Wire.write(0x6b);
   Wire.write(0x00);
   rv = Wire.endTransmission(true);
-  SerialUSB1.print("setup returned ");
-  SerialUSB1.println(rv);
+//  SerialUSB1.print("setup returned ");
+//  SerialUSB1.println(rv);
 
 }
 
@@ -520,15 +532,15 @@ void drivecontrol(MotorControl * mc, int target,float corr) {
   mc->setTargetSpeed(newSpeed);
 }
 
-void loop() {
-  //static int32_t x=0,y=0;
-  //motion.print();
-  //motion.update(x+=100,y+=101);
-
+void loop()
+{
+  // static int32_t x=0,y=0;
+  // motion.print();
+  // motion.update(x+=100,y+=101);
 
   static char cmdbuf[16];
-  static size_t cmdbufpos=0;
-  static float corr=0;
+  static size_t cmdbufpos = 0;
+  static float corr = 0;
 #if 0
   return;
 #endif
@@ -537,55 +549,100 @@ void loop() {
   rightMotor.readSensor();
   const auto nowMicros = micros();
   static auto nextMotionUpdate = nowMicros;
-  if (nowMicros >= nextMotionUpdate) {
-    motion.update(leftMotor.getCounter(),rightMotor.getCounter());
-    if(move) {
-      corr=differential.update(motion.theta-targetangle);
-      //SerialUSB1.println(motion.theta-targetangle);
-      if(abs(corr)>0.01) {
+  if (nowMicros >= nextMotionUpdate)
+  {
+    motion.update(leftMotor.getCounter(), rightMotor.getCounter());
+    if (move)
+    {
+      corr = differential.update(motion.theta - targetangle);
+      // SerialUSB1.println(motion.theta-targetangle);
+      if (abs(corr) > 0.01)
+      {
 #if 1
         SerialUSB1.print("corr: ");
         SerialUSB1.println(corr);
 #endif
       }
-    } else {
-      corr =0;
+    }
+    else
+    {
+      corr = 0;
     }
     leftMotor.motionUpdate();
     rightMotor.motionUpdate();
     nextMotionUpdate += 100000; // 10ms or 100Hz
   }
 
-  if(corr < -topspeed)
-    corr=-topspeed;
-  else if(corr > topspeed)
-    corr=topspeed;
-  drivecontrol(&leftMotor,leftTarget,corr);
-  drivecontrol(&rightMotor,rightTarget,-corr);
+  if (corr < -topspeed)
+    corr = -topspeed;
+  else if (corr > topspeed)
+    corr = topspeed;
+  drivecontrol(&leftMotor, leftTarget, corr);
+  drivecontrol(&rightMotor, rightTarget, -corr);
   static auto nextStatusUpdate = nowMicros;
-  if(nowMicros >= nextStatusUpdate) {
+  if (nowMicros >= nextStatusUpdate)
+  {
     printStatus();
     motion.print();
-    nextStatusUpdate = nowMicros+1000000;
+    nextStatusUpdate = nowMicros + 1000000;
   }
 
   static auto nextVoltageUpdate = nowMicros;
-  if(nowMicros >= nextVoltageUpdate) {
+  if (nowMicros >= nextVoltageUpdate)
+  {
     SerialUSB1.print("Voltage: ");
-     SerialUSB1.println(analogRead(PIN_VBAT));
-     nextVoltageUpdate = nowMicros + 10000000;
+    SerialUSB1.println(analogRead(PIN_VBAT));
+    nextVoltageUpdate = nowMicros + 10000000;
   }
 
-  while (SerialUSB1.available()) {
+  while (SerialUSB1.available())
+  {
     char c = SerialUSB1.read();
-    if(c == '\n' || c == '\r') {
-      cmdbuf[cmdbufpos]=0;
+    if (c == '\n' || c == '\r')
+    {
+      cmdbuf[cmdbufpos] = 0;
       parseCommand(cmdbuf);
-      cmdbufpos=0;
+      cmdbufpos = 0;
     }
-    else if(cmdbufpos < (sizeof(cmdbuf)-1)) {
-      cmdbuf[cmdbufpos++]=c;
+    else if (cmdbufpos < (sizeof(cmdbuf) - 1))
+    {
+      cmdbuf[cmdbufpos++] = c;
     }
   }
-	RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
+
+  switch (state)
+  {
+  case WAITING_AGENT:
+    EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;);
+    break;
+  case AGENT_AVAILABLE:
+    state = (true == create_entities()) ? AGENT_CONNECTED : WAITING_AGENT;
+    if (state == WAITING_AGENT)
+    {
+      destroy_entities();
+    };
+    break;
+  case AGENT_CONNECTED:
+    // EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
+    if (state == AGENT_CONNECTED)
+    {
+      rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1));
+    }
+    break;
+  case AGENT_DISCONNECTED:
+    destroy_entities();
+    state = WAITING_AGENT;
+    break;
+  default:
+    break;
+  }
+
+  if (state == AGENT_CONNECTED)
+  {
+    digitalWrite(LED_PIN, 1);
+  }
+  else
+  {
+    digitalWrite(LED_PIN, 0);
+  }
 }
