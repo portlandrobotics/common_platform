@@ -238,6 +238,7 @@ class Motion {
   float theta;
   int32_t lastLeft,lastRight;
   float track=0.142;//meters
+  float wheelRadius=0.035; // wheel radius in meters
   float meterspercount=0.000153;
 
   void reset() {
@@ -279,14 +280,14 @@ class Motion {
       theta += insttheta;
       //todo: normalize to 0<=theta<2*PI
     }
-    if(AL || AR) {
-      print();
-    }
+    // if(AL || AR) {
+    //   print();
+    // }
   }
   void print() {
     char buf[256];
     sprintf(buf,"Pose: %f,%f %f",location.x,location.y,theta*180/M_PI);
-    // SerialUSB1.println(buf);
+    SerialUSB1.println(buf);
   }
 };
 
@@ -306,7 +307,7 @@ void subscription_callback(const void *msgin)
 	const float linear_vel = msg->linear.x;
 	const float angular_vel = msg->angular.z;
 	digitalWrite(LED_PIN, (msg->linear.x == 0) ? LOW : HIGH);
-//  SerialUSB1.println("TWIST");
+ SerialUSB1.println("TWIST");
 	// Do differential drive inverse kinematics
 	// goalSpeed[0] = linear_vel + 0.5 * angular_vel * WHEEL_BASE;  // right wheel
 	// goalSpeed[1] = linear_vel - 0.5 * angular_vel * WHEEL_BASE;  // Left wheel
@@ -415,33 +416,24 @@ void setup() {
 
 }
 
-int32_t leftTarget=0;
-int32_t rightTarget=0;
-bool cmdDrive=false;
-float topspeed=.1;
-float targetangle=0;
+int32_t leftTargetDistance=0;
+int32_t rightTargetDistance=0;
+float targetHeading=0;
+bool cmdDrive=true;
+float targetLinearVelocity = 0.0;
+float targetAngularVelocity = 0.0;
 bool move = false;
 
 void parseTwist(const geometry_msgs__msg__Twist *msg) {
 	const float linear_vel = msg->linear.x;
 	const float angular_vel = msg->angular.z;
-  float tmp;
-  if (linear_vel > 0) {
-      tmp = linear_vel/motion.meterspercount;
-      leftTarget  += tmp;
-      rightTarget += tmp;
-      targetangle=angular_vel;
+      targetLinearVelocity = msg->linear.x;
+      SerialUSB1.print("TLV");SerialUSB1.println(targetLinearVelocity);
+      targetAngularVelocity = msg->angular.z;
+      SerialUSB1.print("TAV");SerialUSB1.println(targetAngularVelocity);
+      move=false;
+  if (linear_vel != 0) {
       move=true;
-  } else if (angular_vel > 0) {
-      tmp = (angular_vel/180.)*M_PI*motion.track/2./motion.meterspercount;
-      leftTarget  += tmp;
-      rightTarget -= tmp;
-      move=false;
-  } else if (angular_vel < 0) {
-      tmp = (angular_vel/180.)*M_PI*motion.track/2./motion.meterspercount;
-      leftTarget  -= tmp;
-      rightTarget += tmp;
-      move=false;
   } else {
       move=false;
   }
@@ -452,21 +444,21 @@ void parseCommand(const char * const cmd) {
     float tmp = atof(cmd+1);
     if(cmd[0]=='L') {
       tmp = (tmp/180.)*M_PI*motion.track/2./motion.meterspercount;
-      leftTarget  -= tmp;
-      rightTarget += tmp;
+      leftTargetDistance  -= tmp;
+      rightTargetDistance += tmp;
       move=false;
     }
     else if(cmd[0]=='R') {
       tmp = (tmp/180.)*M_PI*motion.track/2./motion.meterspercount;
-      leftTarget  += tmp;
-      rightTarget -= tmp;
+      leftTargetDistance  += tmp;
+      rightTargetDistance -= tmp;
       move=false;
     }
     else if(cmd[0]=='D') {
       tmp /= motion.meterspercount;
-      leftTarget  += tmp;
-      rightTarget += tmp;
-      targetangle=motion.theta;
+      leftTargetDistance  += tmp;
+      rightTargetDistance += tmp;
+      targetHeading=motion.theta;
       move=true;
     }
   }
@@ -476,8 +468,8 @@ void parseCommand(const char * const cmd) {
   else if(cmd[0]=='X') {
     leftMotor.resetCounter();
     rightMotor.resetCounter();
-    leftTarget=0;
-    rightTarget=0;
+    leftTargetDistance=0;
+    rightTargetDistance=0;
     motion.reset();
   }
   else if(cmd[0]=='P') {
@@ -493,7 +485,7 @@ void parseCommand(const char * const cmd) {
     differential.I=tmp;
   }
   else if(cmd[0]=='V') {
-    topspeed=atof(cmd+1);
+    targetLinearVelocity=atof(cmd+1);
   }
   else {
     SerialUSB1.println("Error");
@@ -506,31 +498,41 @@ void parseCommand(const char * const cmd) {
 void printStatus() {
   char buf[128];
   sprintf(buf,"LT %ld, LC %ld, RT %ld, RC %ld %f",
-    leftTarget,leftMotor.getCounter(),
-    rightTarget,rightMotor.getCounter(),leftMotor.pid.P);
+    leftTargetDistance,leftMotor.getCounter(),
+    rightTargetDistance,rightMotor.getCounter(),leftMotor.pid.P);
+  SerialUSB1.println(buf);
+  sprintf(buf, "LV %f, RV %f", leftMotor.getSpeed(), rightMotor.getSpeed());
   SerialUSB1.println(buf);
 }
 
-void drivecontrol(MotorControl * mc, int target,float corr) {
-  float newSpeed=0;
-  if(cmdDrive) {
-    //check position against target
-    auto dLeft = target - mc->getCounter();
-    if(dLeft > 100)
-      newSpeed=topspeed+corr;
-    else if(dLeft > 10)
-      newSpeed=topspeed+corr;//(.02);
-    else if(dLeft > -10)
-      newSpeed=(0);
-    else if(dLeft > -100)
-      newSpeed= -topspeed+corr;//-.02;
-    else
-      newSpeed= -topspeed+corr;
-  } else {
-    newSpeed=0;
-  }
-  mc->setTargetSpeed(newSpeed);
+// Update wheel RPM for each wheel using differential drive kinematics
+void driveControl() {
+  float leftVelocity =  targetLinearVelocity - 0.5*targetAngularVelocity*motion.track/motion.wheelRadius;
+  float rightVelocity = targetLinearVelocity + 0.5*targetAngularVelocity*motion.track/motion.wheelRadius;
+  leftMotor.setTargetSpeed(leftVelocity);
+  rightMotor.setTargetSpeed(rightVelocity);
 }
+
+// void drivecontrol(MotorControl * mc, int target,float corr) {
+//   float newSpeed=0;
+//   if(cmdDrive) {
+//     //check position against target
+//     auto dLeft = target - mc->getCounter();
+//     if(dLeft > 100)
+//       newSpeed=targetLinearVelocity+corr;
+//     else if(dLeft > 10)
+//       newSpeed=targetLinearVelocity+corr;//(.02);
+//     else if(dLeft > -10)
+//       newSpeed=(0);
+//     else if(dLeft > -100)
+//       newSpeed= -targetLinearVelocity+corr;//-.02;
+//     else
+//       newSpeed= -targetLinearVelocity+corr;
+//   } else {
+//     newSpeed=0;
+//   }
+//   mc->setTargetSpeed(newSpeed);
+// }
 
 void loop()
 {
@@ -552,33 +554,34 @@ void loop()
   if (nowMicros >= nextMotionUpdate)
   {
     motion.update(leftMotor.getCounter(), rightMotor.getCounter());
-    if (move)
-    {
-      corr = differential.update(motion.theta - targetangle);
-      // SerialUSB1.println(motion.theta-targetangle);
-      if (abs(corr) > 0.01)
-      {
-#if 1
-        SerialUSB1.print("corr: ");
-        SerialUSB1.println(corr);
-#endif
-      }
-    }
-    else
-    {
-      corr = 0;
-    }
+//     if (move)
+//     {
+//       corr = differential.update(motion.theta - targetHeading);
+//       // SerialUSB1.println(motion.theta-targetangle);
+//       if (abs(corr) > 0.01)
+//       {
+// #if 1
+//         SerialUSB1.print("corr: ");
+//         SerialUSB1.println(corr);
+// #endif
+//       }
+//     }
+//     else
+//     {
+//       corr = 0;
+//     }
     leftMotor.motionUpdate();
     rightMotor.motionUpdate();
     nextMotionUpdate += 100000; // 10ms or 100Hz
   }
 
-  if (corr < -topspeed)
-    corr = -topspeed;
-  else if (corr > topspeed)
-    corr = topspeed;
-  drivecontrol(&leftMotor, leftTarget, corr);
-  drivecontrol(&rightMotor, rightTarget, -corr);
+  // if (corr < -targetLinearVelocity)
+  //   corr = -targetLinearVelocity;
+  // else if (corr > targetLinearVelocity)
+  //   corr = targetLinearVelocity;
+  // drivecontrol(&leftMotor, leftTargetDistance, corr);
+  // drivecontrol(&rightMotor, rightTargetDistance, -corr);
+  driveControl();
   static auto nextStatusUpdate = nowMicros;
   if (nowMicros >= nextStatusUpdate)
   {
@@ -626,7 +629,7 @@ void loop()
     // EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
     if (state == AGENT_CONNECTED)
     {
-      rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1));
+      rclc_executor_spin_some(&executor, RCL_US_TO_NS(10));
     }
     break;
   case AGENT_DISCONNECTED:
