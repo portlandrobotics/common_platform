@@ -308,9 +308,6 @@ void subscription_callback(const void *msgin)
 	const float angular_vel = msg->angular.z;
 	digitalWrite(LED_PIN, (msg->linear.x == 0) ? LOW : HIGH);
  SerialUSB1.println("TWIST");
-	// Do differential drive inverse kinematics
-	// goalSpeed[0] = linear_vel + 0.5 * angular_vel * WHEEL_BASE;  // right wheel
-	// goalSpeed[1] = linear_vel - 0.5 * angular_vel * WHEEL_BASE;  // Left wheel
   parseTwist(msg);
 }
 
@@ -513,27 +510,6 @@ void driveControl() {
   rightMotor.setTargetSpeed(rightVelocity);
 }
 
-// void drivecontrol(MotorControl * mc, int target,float corr) {
-//   float newSpeed=0;
-//   if(cmdDrive) {
-//     //check position against target
-//     auto dLeft = target - mc->getCounter();
-//     if(dLeft > 100)
-//       newSpeed=targetLinearVelocity+corr;
-//     else if(dLeft > 10)
-//       newSpeed=targetLinearVelocity+corr;//(.02);
-//     else if(dLeft > -10)
-//       newSpeed=(0);
-//     else if(dLeft > -100)
-//       newSpeed= -targetLinearVelocity+corr;//-.02;
-//     else
-//       newSpeed= -targetLinearVelocity+corr;
-//   } else {
-//     newSpeed=0;
-//   }
-//   mc->setTargetSpeed(newSpeed);
-// }
-
 void loop()
 {
   // static int32_t x=0,y=0;
@@ -554,33 +530,11 @@ void loop()
   if (nowMicros >= nextMotionUpdate)
   {
     motion.update(leftMotor.getCounter(), rightMotor.getCounter());
-//     if (move)
-//     {
-//       corr = differential.update(motion.theta - targetHeading);
-//       // SerialUSB1.println(motion.theta-targetangle);
-//       if (abs(corr) > 0.01)
-//       {
-// #if 1
-//         SerialUSB1.print("corr: ");
-//         SerialUSB1.println(corr);
-// #endif
-//       }
-//     }
-//     else
-//     {
-//       corr = 0;
-//     }
     leftMotor.motionUpdate();
     rightMotor.motionUpdate();
     nextMotionUpdate += 100000; // 10ms or 100Hz
   }
 
-  // if (corr < -targetLinearVelocity)
-  //   corr = -targetLinearVelocity;
-  // else if (corr > targetLinearVelocity)
-  //   corr = targetLinearVelocity;
-  // drivecontrol(&leftMotor, leftTargetDistance, corr);
-  // drivecontrol(&rightMotor, rightTargetDistance, -corr);
   driveControl();
   static auto nextStatusUpdate = nowMicros;
   if (nowMicros >= nextStatusUpdate)
