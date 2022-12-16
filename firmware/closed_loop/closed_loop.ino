@@ -304,8 +304,6 @@ void error_loop()
 void subscription_callback(const void *msgin)
 {
 	const geometry_msgs__msg__Twist *msg = (const geometry_msgs__msg__Twist *)msgin;
-	const float linear_vel = msg->linear.x;
-	const float angular_vel = msg->angular.z;
 	digitalWrite(LED_PIN, (msg->linear.x == 0) ? LOW : HIGH);
  SerialUSB1.println("TWIST");
   parseTwist(msg);
@@ -423,7 +421,6 @@ bool move = false;
 
 void parseTwist(const geometry_msgs__msg__Twist *msg) {
 	const float linear_vel = msg->linear.x;
-	const float angular_vel = msg->angular.z;
       targetLinearVelocity = msg->linear.x;
       SerialUSB1.print("TLV");SerialUSB1.println(targetLinearVelocity);
       targetAngularVelocity = msg->angular.z;
@@ -518,10 +515,6 @@ void loop()
 
   static char cmdbuf[16];
   static size_t cmdbufpos = 0;
-  static float corr = 0;
-#if 0
-  return;
-#endif
 
   leftMotor.readSensor();
   rightMotor.readSensor();
