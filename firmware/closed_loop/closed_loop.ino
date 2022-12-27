@@ -286,7 +286,7 @@ class Motion {
   }
   void print() {
     char buf[256];
-    sprintf(buf,"Pose: %f,%f %f",location.x,location.y,theta*180/M_PI);
+    sprintf(buf,"Pose: %f, %f %f",location.x,location.y,theta*180/M_PI);
     SerialUSB1.println(buf);
   }
 };
@@ -491,18 +491,18 @@ void parseCommand(const char * const cmd) {
 
 void printStatus() {
   char buf[128];
-  sprintf(buf,"LT %ld, LC %ld, RT %ld, RC %ld %f",
-    leftTargetDistance,leftMotor.getCounter(),
-    rightTargetDistance,rightMotor.getCounter(),leftMotor.pid.P);
-  SerialUSB1.println(buf);
+  // sprintf(buf,"LT %ld, LC %ld, RT %ld, RC %ld %f",
+  //   leftTargetDistance,leftMotor.getCounter(),
+  //   rightTargetDistance,rightMotor.getCounter(),leftMotor.pid.P);
+  // SerialUSB1.println(buf);
   sprintf(buf, "LV %f, RV %f", leftMotor.getSpeed(), rightMotor.getSpeed());
   SerialUSB1.println(buf);
 }
 
 // Update wheel RPM for each wheel using differential drive kinematics
 void driveControl() {
-  float leftVelocity =  targetLinearVelocity - 0.5*targetAngularVelocity*motion.track/motion.wheelRadius;
-  float rightVelocity = targetLinearVelocity + 0.5*targetAngularVelocity*motion.track/motion.wheelRadius;
+  float leftVelocity =  targetLinearVelocity - 0.5*targetAngularVelocity*motion.track;
+  float rightVelocity = targetLinearVelocity + 0.5*targetAngularVelocity*motion.track;
   leftMotor.setTargetSpeed(leftVelocity);
   rightMotor.setTargetSpeed(rightVelocity);
 }
