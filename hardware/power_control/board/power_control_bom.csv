@@ -1,0 +1,16 @@
+Reference, Quantity, Value, Footprint,Digikey Part,MFG Part,Description, Datasheet
+C1 C3 C4 ,3,2.2u,Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder,,,,~
+C2 C5 ,2,100n,Capacitor_SMD:C_0603_1608Metric_Pad1.08x0.95mm_HandSolder,,,,~
+J1 J2 ,2,Conn_01x03,Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical,,,,~
+J3 ,1,Conn_01x04,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,,,,~
+J4 ,1,Conn_01x06,Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical,,,,~
+J5 ,1,Conn_01x02,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,,,,~
+J6 ,1,,Package_TO_SOT_SMD:SOT-363_SC-70-6_Handsoldering,1727-2733-1-ND,NX138BKSX,MOSFET 2 N-CH 60V 210MA 6TSSOP,~
+R1 ,1,330k,Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder,,,,~
+R2 ,1,1M,Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder,,,,~
+R3 ,1,4.7k,Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder,,,,~
+R5 ,1,1k,Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder,,,,~
+R7 R8 R9 R10 R11 ,5,10k,Resistor_SMD:R_0603_1608Metric_Pad0.98x0.95mm_HandSolder,,,,~
+SW1 ,1,SW_Push,Button_Switch_SMD:SW_SPST_TL3305A,EG5350CT-ND,TL3305AF160QG,SWITCH TACTILE SPST-NO 50MA 12V,~
+U1 ,1,MCP1703A-5002_SOT23,Package_TO_SOT_SMD:SOT-23,MCP1792T-3302H/CBCT-ND,MCP1792T-3302H/CB,IC REG LIN 3.3V 100MA SOT23A-3,http://ww1.microchip.com/downloads/en/DeviceDoc/20005122B.pdf
+U2 ,1,ATtiny1604-SS,Package_SO:SOIC-14_3.9x8.7mm_P1.27mm,ATTINY1604-SSNRCT-ND,ATTINY1604-SSNR,IC MCU 8BIT 16KB FLASH 14SOIC,http://ww1.microchip.com/downloads/en/DeviceDoc/ATtiny804_1604-Data-Sheet-40002028A.pdf
