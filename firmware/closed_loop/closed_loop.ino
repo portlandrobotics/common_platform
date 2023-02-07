@@ -363,7 +363,7 @@ void setup() {
 	delay(2000);
   state = WAITING_AGENT;
 
-  leftMotor.pid.P = .02;
+  leftMotor.pid.P = .04;
   leftMotor.pid.I = 0;
   leftMotor.pid.D = 0;
   rightMotor.pid.P = .04;
@@ -573,7 +573,7 @@ void loop()
     };
     break;
   case AGENT_CONNECTED:
-    // EXECUTE_EVERY_N_MS(200, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
+    EXECUTE_EVERY_N_MS(1000, state = (RMW_RET_OK == rmw_uros_ping_agent(1000, 5)) ? AGENT_CONNECTED : AGENT_DISCONNECTED;);
     if (state == AGENT_CONNECTED)
     {
       rclc_executor_spin_some(&executor, RCL_US_TO_NS(10));
