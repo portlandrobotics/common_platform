@@ -98,11 +98,11 @@ Looking towards the future, our vision is to enhance this platform by integratin
 
 ### Built With
 
-* [![Arduino][arduino-ide]][arduino-url]
 * [![CPP][cpp]][cpp-url]
 * [![C][c]][c-url]
 * [![Python 3][python]][python-url]
 * [![PlatformIO][platformio]][platformio-url]
+* [![Arduino][arduino-ide]][arduino-url]
 * [![KiCadEDA][kicad]][kicad-url]
 * [![ROS][ros]][ros-url]
 
@@ -113,16 +113,12 @@ Looking towards the future, our vision is to enhance this platform by integratin
 <!-- GETTING STARTED -->
 ## Getting Started
 
-This is an example of how you may give instructions on setting up your project locally.
-To get a local copy up and running follow these simple example steps.
-
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
-* npm
-  ```sh
-  npm install npm@latest -g
-  ```
+* All the required parts from the BOM on hand. [BOM](/BOM.csv)
+* Windows/Mac/Linux PC
+* Soldering supplies
+
 
 ### Installation
 
@@ -195,36 +191,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- CONTACT -->
-## Contact
-
-Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
-
-Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
-<!-- ACKNOWLEDGMENTS -->
-## Acknowledgments
-
-Use this space to list resources you find helpful and would like to give credit to. I've included a few of my favorites to kick things off!
-
-* [Choose an Open Source License](https://choosealicense.com)
-* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
-* [Malven's Flexbox Cheatsheet](https://flexbox.malven.co/)
-* [Malven's Grid Cheatsheet](https://grid.malven.co/)
-* [Img Shields](https://shields.io)
-* [GitHub Pages](https://pages.github.com)
-* [Font Awesome](https://fontawesome.com)
-* [React Icons](https://react-icons.github.io/react-icons/search)
+Distributed under the MIT License. See [LICENSE.txt][license-url]  for more information.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
