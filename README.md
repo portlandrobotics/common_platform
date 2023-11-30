@@ -27,7 +27,7 @@
   <p align="center">
     Build and master the Common Robotics Platform with Portland Area Robotics Society 
     <br />
-    <a href="https://github.com/portlandrobotics/common_platform"><strong>Explore the docs »</strong></a>
+    <a href="https://parts-common-platform.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/portlandrobotics/common_platform">View Demo</a>  <!-- TODO We need to add a demo video here -->
