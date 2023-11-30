@@ -22,7 +22,7 @@
     <img src="github/img/PARTS.png" alt="Logo" width="250" height="250">
   </a>
 
-  <h3 align="center">Portland Area Robotics Common Robotics Platform</h3>
+  <h3 align="center">Portland Area Robotics Society -- Common Robotics Platform</h3>
 
   <p align="center">
     Build and master the Common Robotics Platform with Portland Area Robotics Society 
