@@ -1,9 +1,9 @@
 .. _software:
 
-Software Guide for the PARTS Romi Chassis Robot
+Software Guide for the PARTS- Common Robotics Platform
 ===============================================
 
-This section of the documentation covers the software aspects of the PARTS Romi Chassis Robot. It includes information on firmware installation, software setup, programming instructions, and troubleshooting.
+This section of the documentation covers the software aspects of the PARTS- Common Robotics Platform. It includes information on firmware installation, software setup, programming instructions, and troubleshooting.
 
 Introduction to the Software Setup
 -----------------------------------

@@ -1,9 +1,9 @@
 .. _hardware:
 
-Hardware Overview of the PARTS Romi Chassis Robot
+Hardware Overview of the PARTS- Common Robotics Platform
 =================================================
 
-This document provides a comprehensive overview of the hardware components of the PARTS Romi Chassis Robot. It covers the details of the Romi Chassis, the custom carrier board, and any additional hardware used in the project.
+This document provides a comprehensive overview of the hardware components of the PARTS- Common Robotics Platform. It covers the details of the Romi Chassis, the custom carrier board, and any additional hardware used in the project.
 
 Introduction to the Hardware
 -----------------------------

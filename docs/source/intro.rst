@@ -1,9 +1,9 @@
 .. _intro:
 
-Introduction to the PARTS Romi Chassis Robot
+Introduction to the PARTS- Common Robotics Platform
 ============================================
 
-Welcome to the documentation for the PARTS Romi Chassis Robot! This document serves as an introduction to the Romi Chassis, a versatile and compact robotic platform, and outlines how it is used and customized in our PARTS project.
+Welcome to the documentation for the PARTS- Common Robotics Platform! This document serves as an introduction to the Romi Chassis, a versatile and compact robotic platform, and outlines how it is used and customized in our PARTS project.
 
 What is the Romi Chassis?
 -------------------------
@@ -13,7 +13,7 @@ The Romi Chassis is a [brief description of the Romi Chassis, its features, and 
 About This Project
 ------------------
 
-This section should provide an overview of your specific project. Discuss what the PARTS Romi Chassis Robot is, its objectives, and what makes it unique or different from standard implementations. 
+This section should provide an overview of your specific project. Discuss what the PARTS- Common Robotics Platform is, its objectives, and what makes it unique or different from standard implementations. 
 
 - **Project Goals**: Outline the goals or problems that this project aims to address.
 - **Custom Features**: Highlight any custom features or modifications made to the standard Romi Chassis in this project.
@@ -21,7 +21,7 @@ This section should provide an overview of your specific project. Discuss what t
 Getting Started
 ---------------
 
-Here, guide the reader on how to begin with the PARTS Romi Chassis Robot.
+Here, guide the reader on how to begin with the PARTS- Common Robotics Platform.
 
 - **Prerequisites**: List any prerequisites, such as hardware components, software requirements, or knowledge prerequisites.
 - **Initial Setup**: Briefly describe the initial setup steps or refer the reader to a section in the documentation where the setup is detailed.

@@ -1,9 +1,9 @@
 .. _testing:
 
-Testing and Validation for the PARTS Romi Chassis Robot
+Testing and Validation for the PARTS- Common Robotics Platform
 =======================================================
 
-This section of the documentation focuses on testing and validating the PARTS Romi Chassis Robot. It includes guidelines on how to conduct tests to ensure the robot is functioning as expected, both in terms of hardware and software.
+This section of the documentation focuses on testing and validating the PARTS- Common Robotics Platform. It includes guidelines on how to conduct tests to ensure the robot is functioning as expected, both in terms of hardware and software.
 
 Introduction to Testing
 -----------------------

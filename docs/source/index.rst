@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Common Robotics Platform - PARTS's documentation!
+Welcome to PARTS- Common Robotics Platform documentation!
 ============================================================
 
 .. toctree::
