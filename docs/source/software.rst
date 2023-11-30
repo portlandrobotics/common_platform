@@ -1,7 +1,7 @@
 .. _software:
 
-Software Guide for the PARTS- Common Robotics Platform
-===============================================
+Software Guide
+==============
 
 This section of the documentation covers the software aspects of the PARTS- Common Robotics Platform. It includes information on firmware installation, software setup, programming instructions, and troubleshooting.
 

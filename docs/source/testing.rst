@@ -1,7 +1,7 @@
 .. _testing:
 
-Testing and Validation for the PARTS- Common Robotics Platform
-=======================================================
+Testing and Validation
+======================
 
 This section of the documentation focuses on testing and validating the PARTS- Common Robotics Platform. It includes guidelines on how to conduct tests to ensure the robot is functioning as expected, both in terms of hardware and software.
 

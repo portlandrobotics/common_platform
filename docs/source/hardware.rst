@@ -1,7 +1,7 @@
 .. _hardware:
 
-Hardware Overview of the PARTS- Common Robotics Platform
-=================================================
+Hardware Guide
+==============
 
 This document provides a comprehensive overview of the hardware components of the PARTS- Common Robotics Platform. It covers the details of the Romi Chassis, the custom carrier board, and any additional hardware used in the project.
 

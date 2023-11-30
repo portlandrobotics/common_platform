@@ -1,7 +1,7 @@
 .. _intro:
 
-Introduction to the PARTS- Common Robotics Platform
-============================================
+Introduction
+============
 
 Welcome to the documentation for the PARTS- Common Robotics Platform! This document serves as an introduction to the Romi Chassis, a versatile and compact robotic platform, and outlines how it is used and customized in our PARTS project.
 
