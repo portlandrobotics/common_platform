@@ -9,11 +9,11 @@ Welcome to Common Robotics Platform - PARTS's documentation!
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+
    intro
    hardware
    software
    testing
-
 
 
 Indices and tables
