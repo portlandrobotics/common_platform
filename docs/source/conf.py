@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'Common Robotics Platform - PARTS'
+project = 'PARTS- Common Robotics Platform'
 copyright = '2023, Portland Area Robotics Society'
 author = 'Jeff Higgason'
 
