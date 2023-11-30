@@ -130,6 +130,7 @@ Looking towards the future, our vision is to enhance this platform by integratin
 
 ### Installation
 
+_TODO
 _Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
 
 1. Solder your PARTS CRP Board
@@ -149,7 +150,7 @@ _Below is an example of how you can instruct your audience on installing and set
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-
+_TODO
 Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
 
 _For more examples, please refer to the [Documentation](https://parts-common-platform.readthedocs.io/en/latest/)_
@@ -160,7 +161,7 @@ _For more examples, please refer to the [Documentation](https://parts-common-pla
 
 <!-- ROADMAP -->
 ## Roadmap
-
+_TODO
 - [x] Add Changelog
 - [x] Add back to top links
 - [ ] Add Additional Templates w/ Examples
