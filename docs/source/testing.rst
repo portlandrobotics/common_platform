@@ -59,9 +59,3 @@ Conclusion
 ----------
 
 Conclude the testing documentation by summarizing the key points. Encourage users to thoroughly test their Romi Chassis Robots and report any issues or feedback for continuous improvement.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Return to:
-
-   index

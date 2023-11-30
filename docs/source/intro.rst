@@ -55,11 +55,3 @@ Conclusion
 
 Conclude the introduction with a brief summary and encourage the reader to explore the rest of the documentation.
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Next Steps:
-
-   hardware
-   software
-   testing
-

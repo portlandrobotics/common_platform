@@ -59,9 +59,3 @@ Conclusion
 ----------
 
 Conclude the software guide by summarizing the key points and encouraging users to experiment and explore further functionalities.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Next Steps:
-
-   testing

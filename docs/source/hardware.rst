@@ -59,10 +59,3 @@ Conclusion
 ----------
 
 Conclude the hardware overview by summarizing the key points. Encourage readers to proceed to the software documentation for information on how to operate the assembled hardware.
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Next Steps:
-
-   software
-   testing
