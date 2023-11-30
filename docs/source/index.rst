@@ -15,7 +15,6 @@ Welcome to Common Robotics Platform - PARTS's documentation!
    software
    testing
 
-
 Indices and tables
 ==================
 
