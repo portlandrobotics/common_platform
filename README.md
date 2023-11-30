@@ -19,7 +19,7 @@
 <br />
 <div align="center">
   <a href="https://portlandrobotics.org/home.php?link_id=1">
-    <img src="github/img/PARTS.png" alt="Logo" width="250" height="250">
+    <img src="github/img/PARTS.png" alt="Logo" width="400" height="400">
   </a>
 
   <h3 align="center">Portland Area Robotics Society -- Common Robotics Platform</h3>
