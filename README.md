@@ -1,4 +1,4 @@
-<a name="readme-top"></a>
+BJBJBJ<a name="readme-top"></a>
 
 <!-- PROJECT SHIELDS -->
 <!--
@@ -93,7 +93,7 @@ Key components of our build include two TB9051FTG Single Brushed DC Motor Driver
 <br>
 <p align="center">
   <a href="https://www.pololu.com/category/203/romi-chassis-kits">
-    <img src="github/img/romi-2.jpg " alt="Romi Chassis">
+    <img src="github/img/romi-2.jpg" alt="Romi Chassis">
   </a>
 </p>
 <br>
