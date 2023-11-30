@@ -80,7 +80,23 @@
 
 Our project centers around the innovative construction and programming of a versatile robot using the robust Pololu Romi Chassis Kit as its foundation. At the heart of our design is a custom carrier PCB, which integrates seamlessly with the chassis, ensuring a compact and efficient layout. 
 
+<br>
+<p align="center">
+  <a href="https://portlandrobotics.org/home.php?link_id=1">
+    <img src="github/img/PARTS-board.png" alt="Logo" width="300" height="202">
+  </a>
+<br>
+<br>
+
 Key components of our build include two TB9051FTG Single Brushed DC Motor Driver Carriers for precise motion control, and a Pololu 5V, 2.5A Step-Down Voltage Regulator D24V22F5 to ensure stable power supply. Navigation and orientation are handled by the sophisticated MPU-9250 9DOF Module, a nine-axis sensor that offers unparalleled accuracy in movement tracking. Additional hardware includes a set of Romi Encoders, a Romi Chassis Caster for stable maneuverability, and a powerful Teensy 4.0 microcontroller for robust processing capabilities. We've also incorporated an SPDT slide switch and two IRFU5505PBF transistors, supported by a suite of nine resistors of varying values to fine-tune our circuitry. 
+
+<br>
+<p align="center">
+  <a href="https://www.pololu.com/category/203/romi-chassis-kits">
+    <img src="github/img/romi-2.jpg " alt="Romi Chassis">
+  </a>
+</p>
+<br>
 
 Looking towards the future, our vision is to enhance this platform by integrating a Raspberry Pi, aiming to achieve autonomous functionality through the advanced capabilities of ROS2. This robot is not just a machine, but a gateway to exploring the vast possibilities of robotics, making it an ideal platform for enthusiasts and innovators alike in the Portland Area Robotics Society.
 
@@ -116,12 +132,9 @@ Looking towards the future, our vision is to enhance this platform by integratin
 
 _Below is an example of how you can instruct your audience on installing and setting up your app. This template doesn't rely on any external dependencies or services._
 
-1. Get a free API Key at [https://example.com](https://example.com)
-2. Clone the repo
-   ```sh
-   git clone https://github.com/your_username_/Project-Name.git
-   ```
-3. Install NPM packages
+1. Solder your PARTS CRP Board
+2. Solder accessories like the IMU
+3. Assemble the Pololu Romi Chassis
    ```sh
    npm install
    ```
