@@ -64,6 +64,4 @@ Conclude the testing documentation by summarizing the key points. Encourage user
    :maxdepth: 2
    :caption: Return to:
 
-   intro
-   hardware
-   software
+   index
