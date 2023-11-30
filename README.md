@@ -73,7 +73,7 @@
 <br>
 <p align="center">
   <a href="https://www.pololu.com/category/203/romi-chassis-kits">
-    <img src="github/img/romi.jpg" alt="Romi Chassis">
+    <img src="github/img/romi.png" alt="Romi Chassis">
   </a>
 </p>
 <br>
