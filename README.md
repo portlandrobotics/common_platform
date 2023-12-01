@@ -1,4 +1,4 @@
-BJBJBJ<a name="readme-top"></a>
+<a name="readme-top"></a>
 
 <!-- PROJECT SHIELDS -->
 <!--
