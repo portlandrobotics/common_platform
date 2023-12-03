@@ -1,10 +1,13 @@
 //***********************************
 // PARTS Common Robot Platform
-// Test Program  				 
+// SBUS Test Program  				 
 //***********************************
 #include <Wire.h> // Include the Wire library for I2C communication
 #include <Arduino.h>
 #include <sbus.h>
+
+bfs::SbusRx sbus_rx(&Serial4, true); // Assuming Serial4 is connected to the SBUS receiver and the receiver is standard inverted sbus
+bfs::SbusData data;
 
 // Define constants to enable or disable various debug prints and features.
 #define PRINT_MOTION 0        // Control print statements related to motion
@@ -151,6 +154,7 @@ void dumpMotion() {
 
 // Setup function, runs once at the beginning
 void setup() {
+
     // Enable internal pullup resistors for encoder pins
     pinMode(PIN_LENCA, INPUT_PULLUP);
     pinMode(PIN_LENCB, INPUT_PULLUP);
@@ -189,6 +193,9 @@ void setup() {
     rv = Wire.endTransmission(true);
     Serial.print("setup returned ");
     Serial.println(rv);
+
+    // Initialize SBUS
+    sbus_rx.Begin();
 }
 
 // Main loop function, runs repeatedly
@@ -285,7 +292,7 @@ void loop() {
     #endif
 
     static int setspeed[2] = {0, 0}; // Array to store speed setpoints for motors
-
+/*
     #if PID_ENABLED
         // Closed loop control of motor speed using PID
         static unsigned long lastPidUpdate = 0;
@@ -341,7 +348,35 @@ void loop() {
         }
         lastLoopTime = loopTime; // Update last loop time
     #endif
+*/
 
+    if (sbus_rx.Read()) {
+        data = sbus_rx.data();
+        
+        // Convert SBUS channel values to motor speed
+        int setspeed[2];  // Array to hold motor speeds
+        int linear = map(data.ch[1], 172, 1810, -MAX_PWM, MAX_PWM);  // Channel 2 for linear speed
+        int angular = map(data.ch[0], 172, 1810, -MAX_PWM, MAX_PWM); // Channel 1 for angular speed
+
+        // Calculate motor speeds for turning
+        setspeed[0] = constrain(linear - angular, -MAX_PWM, MAX_PWM);  // Motor 0 speed
+        setspeed[1] = constrain(linear + angular, -MAX_PWM, MAX_PWM);  // Motor 1 speed
+
+        // Apply motor speeds
+        for (i = 0; i < 2; i++) {
+            // Control motor direction and speed using PWM
+            if (setspeed[i] * motorDir[i] >= 0) {
+                analogWrite(motorPWMPin1[i], setspeed[i] * motorDir[i]);
+                analogWrite(motorPWMPin2[i], 0);
+            } else {
+                analogWrite(motorPWMPin1[i], 0);
+                analogWrite(motorPWMPin2[i], -setspeed[i] * motorDir[i]);
+            }
+        }
+    }
+
+
+/*
     #if MOTORS_ENABLED
         // Set motor PWM for both motors
         for (i = 0; i < 2; i++) {
@@ -369,6 +404,7 @@ void loop() {
         Serial.print(" Left output: ");
         Serial.println(setspeed[LMOT]);
     #endif
+*/
 
     #if PRINT_CURRENTS
         // Print motor currents at regular intervals
