@@ -14,11 +14,12 @@ This README provides instructions on using the SBUS library to integrate SBUS co
 
 2. **Hardware Connection**: 
    - Connect the SBUS out on your receiver to an open Serial RX port on your Teensy. 
-   - In this example, RX4 (Serial4), connected to I2C2 on the common platform board, is used.
+   - In this example, RX4 (Serial4) on the teansy, which is also connected to I2C2 on the common platform board, is used. Connect the yellow wire from your reciever here. 
+   - Connect the red wire to 5V and the black wire to ground.  
    - Ensure that R8 on the common platform board is disconnected.
 
 3. **Firmware Upload**:
-   - Flash your Teensy with `sbus_test.ino`.
+   - Flash your Teensy with the firmware. You can find the firmware file `sbus_test.ino` in this repository. Click [here](./sbus_test.ino) to view or download it.
 
 4. **Transmitter Setup**:
    - Configure your transmitter to output on Channels 1 and 2. Standard AETR configuration means the right stick will control the robot.
