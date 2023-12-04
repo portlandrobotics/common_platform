@@ -1,44 +1,65 @@
-#SBUS Test Readme
+# SBUS Test Readme
 
--This uses a SBUS library https://github.com/bolderflight/sbus to provide SBUS control to our PARTS Robot.  
+## Overview
+This README provides instructions on using the SBUS library to integrate SBUS control into the PARTS Robot. The SBUS library can be found at [bolderflight/sbus](https://github.com/bolderflight/sbus).
 
--How to use:
+## Prerequisites
+- A working installation of Teensy microcontroller.
+- Basic understanding of SBUS communication protocol.
+- A compatible SBUS transmitter and receiver.
 
-- Download and install the sbus library: https://github.com/bolderflight/sbus
-- Hook up SBUS out on your receiver to an open Serial RX port on your Teensy.  In my example I used RX4 (Serial4) which is connected to I2C2 on our common platform board.
-- Ensure that R8 on the common platform board is not connected.  
-- Flash your Teensy with sbus_test.ino.
-- Ensure your transmitter is setup to output on Channels 1 and 2.  If you are using standard AETR- then the right stick will control the robot.
-- Ensure your transmitter is bound to your Reciever.
-- Ensure your receiver is in SBUS mode and not CPPM
-- Power it all up and try it out!
-- Data is logged to usb serial 
+## Installation and Setup
 
--Important Parameters:
+1. **Library Installation**: Download and install the sbus library from [bolderflight/sbus](https://github.com/bolderflight/sbus).
 
-Which serial RX port are you using?  Find this bit of code:
+2. **Hardware Connection**: 
+   - Connect the SBUS out on your receiver to an open Serial RX port on your Teensy. 
+   - In this example, RX4 (Serial4), connected to I2C2 on the common platform board, is used.
+   - Ensure that R8 on the common platform board is disconnected.
 
-```cpp 
-bfs::SbusRx sbus_rx(&Serial4, true); //Setup SBUS using Serial4 (RX4), Using a standard SBUS inverted signal
-``````
+3. **Firmware Upload**:
+   - Flash your Teensy with `sbus_test.ino`.
 
-If you need to change which channels you are listening on- look for this:
+4. **Transmitter Setup**:
+   - Configure your transmitter to output on Channels 1 and 2. Standard AETR configuration means the right stick will control the robot.
+   - Ensure your transmitter is bound to your receiver.
 
-```cpp
-int linear = map(data.ch[1], 172, 1810, -MAX_PWM, MAX_PWM);  // Channel 2 for linear speed
-int angular = map(data.ch[0], 172, 1810, -MAX_PWM, MAX_PWM); // Channel 1 for angular speed
-```
+5. **Receiver Configuration**:
+   - Make sure the receiver is in SBUS mode and not CPPM.
 
-Change Max speed? Change this:
+6. **Power and Test**:
+   - Power up the system and test the functionality.
+   - Data is logged to USB serial for monitoring.
 
-```cpp // Constants for motor control
-const int MAX_PWM      = 200;        // Maximum PWM value for motor speed 0-255
-```
+## Important Parameters
 
+- **Serial Port Configuration**:
+  To change the serial port, modify the following line in your code:
 
+  ```cpp 
+  bfs::SbusRx sbus_rx(&Serial4, true); // Setup SBUS using Serial4 (RX4), using a standard SBUS inverted signal
+  ```
 
--Tested on:
+- **Channel Configuration**:
+  To change the channels you are monitoring:
 
-Radiomaster Zorro jp4in1
+  ```cpp
+  int linear = map(data.ch[1], 172, 1810, -MAX_PWM, MAX_PWM);  // Channel 2 for linear speed
+  int angular = map(data.ch[0], 172, 1810, -MAX_PWM, MAX_PWM); // Channel 1 for angular speed
+  ```
 
-FRSky R-XSR Sbus Receiver
+- **Maximum Speed Setting**:
+  To change the maximum speed:
+
+  ```cpp
+  const int MAX_PWM = 200;        // Maximum PWM value for motor speed 0-255
+  ```
+
+## Tested Hardware
+
+- Radiomaster Zorro jp4in1
+- FRSky R-XSR Sbus Receiver
+
+## Contributing
+
+For any suggestions or contributions, please create an issue or pull request on the GitHub repository.
