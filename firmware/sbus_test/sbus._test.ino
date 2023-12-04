@@ -66,6 +66,20 @@ void loop() {
     if (sbus_rx.Read()) {
         data = sbus_rx.data(); // Update SBUS data
 
+        // Check for frame lost or failsafe activation
+        if ((data.ch[23] & 0x04) || (data.ch[23] & 0x08)) {
+            // Frame lost or failsafe activated, stop the motors
+            analogWrite(PIN_RD_PWM1, 0);
+            analogWrite(PIN_RD_PWM2, 0);
+            analogWrite(PIN_LD_PWM1, 0);
+            analogWrite(PIN_LD_PWM2, 0);
+
+            // Optional: Print a message to the serial monitor
+            Serial.println("SBUS signal issue detected, stopping motors");
+
+            return; // Skip the rest of the loop
+        }
+
         // Convert SBUS channel values to motor speeds
         int linear = map(data.ch[1], 172, 1810, -MAX_PWM, MAX_PWM); // Channel 2 for linear speed
         int angular = map(data.ch[0], 172, 1810, -MAX_PWM, MAX_PWM); // Channel 1 for angular speed
@@ -85,30 +99,33 @@ void loop() {
                 analogWrite(motorPWMPin2[i], -setspeed[i] * motorDir[i]);
             }
         }
-
-        // Update and log every 0.5 seconds
-        if (currentMillis - lastUpdateTime >= 500) {
-            lastUpdateTime = currentMillis; // Update the last update time
-
-            // Log SBUS data
-            Serial.print("SBUS Channel 1: ");
-            Serial.print(data.ch[0]);
-            Serial.print(", Channel 2: ");
-            Serial.println(data.ch[1]);
-
-            // Log calculated motor speeds
-            Serial.print("Motor 0 Speed: ");
-            Serial.print(setspeed[0]);
-            Serial.print(", Motor 1 Speed: ");
-            Serial.println(setspeed[1]);
-        }
     } else {
-        if (currentMillis - lastUpdateTime >= 500) {
-            lastUpdateTime = currentMillis; // Update the last update time
-            // Log if no SBUS data read
-            Serial.println("No SBUS data received");
-        }
+        // No SBUS data received, stop the motors
+        analogWrite(PIN_RD_PWM1, 0);
+        analogWrite(PIN_RD_PWM2, 0);
+        analogWrite(PIN_LD_PWM1, 0);
+        analogWrite(PIN_LD_PWM2, 0);
+
+        // Optional: Print a message to the serial monitor
+        Serial.println("No SBUS data received, stopping motors");
+
+        return; // Skip the rest of the loop
+    }
+
+    // Update and log every 0.5 seconds
+    if (currentMillis - lastUpdateTime >= 500) {
+        lastUpdateTime = currentMillis; // Update the last update time
+
+        // Log SBUS data
+        Serial.print("SBUS Channel 1: ");
+        Serial.print(data.ch[0]);
+        Serial.print(", Channel 2: ");
+        Serial.println(data.ch[1]);
+
+        // Log calculated motor speeds
+        Serial.print("Motor 0 Speed: ");
+        Serial.print(setspeed[0]);
+        Serial.print(", Motor 1 Speed: ");
+        Serial.println(setspeed[1]);
     }
 }
-
-
