@@ -9,7 +9,8 @@
 - Ensure that R8 on the common platform board is not connected.  
 - Flash your Teensy with sbus_test.ino.
 - Ensure your transmitter is setup to output on Channels 1 and 2.  If you are using standard AETR- then the right stick will control the robot.
-- Ensure your transmitter is bound to your rx.
+- Ensure your transmitter is bound to your Reciever.
+- Ensure your receiver is in SBUS mode and not CPPM
 - Power it all up and try it out!
 
 -Important Parameters:
@@ -28,3 +29,10 @@ Want more or less speed? Change this:
 
         // Constants for motor control
         const int MAX_PWM      = 200;        // Maximum PWM value for motor speed 0-255
+
+
+
+-Tested on:
+
+Radiomaster Zorro jp4in1
+FRSky R-XSR Sbus Receiver
