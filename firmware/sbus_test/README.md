@@ -1,7 +1,12 @@
 # SBUS Test Readme
 
 ## Overview
-This README provides instructions on using the SBUS library to integrate SBUS control into the PARTS Robot. The SBUS library can be found at [bolderflight/sbus](https://github.com/bolderflight/sbus).
+
+The SBUS (Serial Bus) protocol is a digital communication protocol used in remote control equipment, particularly for communicating with RC (radio controlled) servos. It is favored for its efficiency and capability to handle multiple channels over a single wire. This README guides you through integrating SBUS control with our PARTS Robot using the [bolderflight/sbus](https://github.com/bolderflight/sbus) library.
+
+Our project leverages the SBUS protocol to enable precise and responsive control over the PARTS Robot. By using SBUS, we can efficiently manage multiple control signals, such as steering and throttle, through a single digital connection. This approach simplifies wiring, increases reliability, and enhances the overall responsiveness of the robot. The SBUS library by Bolder Flight Systems provides a convenient and robust way to implement SBUS communication in our system, especially when interfaced with a Teensy microcontroller.
+
+Whether you are building a sophisticated robotic platform or experimenting with advanced RC setups, understanding and utilizing the SBUS protocol is crucial for achieving a high level of control and performance in your projects.
 
 ## Prerequisites
 - A working installation of Teensy microcontroller.
