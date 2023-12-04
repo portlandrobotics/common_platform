@@ -6,8 +6,6 @@ The SBUS (Serial Bus) protocol is a digital communication protocol used in remot
 
 Our project leverages the SBUS protocol to enable precise and responsive control over the PARTS Robot. By using SBUS, we can efficiently manage multiple control signals, such as steering and throttle, through a single digital connection. This approach simplifies wiring, increases reliability, and enhances the overall responsiveness of the robot. The SBUS library by Bolder Flight Systems provides a convenient and robust way to implement SBUS communication in our system, especially when interfaced with a Teensy microcontroller.
 
-Whether you are building a sophisticated robotic platform or experimenting with advanced RC setups, understanding and utilizing the SBUS protocol is crucial for achieving a high level of control and performance in your projects.
-
 ## Prerequisites
 - A working installation of Teensy microcontroller.
 - Basic understanding of SBUS communication protocol.
