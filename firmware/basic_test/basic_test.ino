@@ -201,10 +201,11 @@ void loop() {
     static long dt[2] = {0, 0};               // Time difference between encoder readings
     int8_t enc[2] = {0, 0};                   // Current encoder values
     float speed[2];                           // Speeds of the wheels
-#if PID_ENABLED
-    float goalSpeed[2] = {0.1, 0.1};          // Target speeds for PID control
-#endif
-    int i;
+
+    #if PID_ENABLED
+        float goalSpeed[2] = {0.1, 0.1};          // Target speeds for PID control
+    #endif
+        int i;
 
     // Read encoder values
     if (digitalRead(PIN_LENCB) == HIGH)
@@ -247,150 +248,150 @@ void loop() {
             lastEncSpeed[i] = speed[i] * dir[i];
         }
     }
-}
-#if PRINT_ENCODER_SPEED
-    // Print distance and speed information for each wheel
-    for (i = 0; i < 2; i++) {
-        static unsigned long nextPrintRead[2] = {0, 0}; // Next time to print
 
-        // Check if it's time to print for this wheel
-        if (nowMillis > nextPrintRead[i]) {
-            Serial.print(wheelName[i]); // Print wheel name
-            Serial.print(" ");
-            Serial.print(dt[i] / 1e3); // Print time interval in milliseconds
-            Serial.print(" msec, dir ");
-            Serial.print(dir[i]); // Print direction of wheel
-            Serial.print(" total ");
-            Serial.print(encCount[i] * 153e-6); // Print total distance in meters
-            Serial.print(" meters, speed ");
-            Serial.print(lastEncSpeed[i]); // Print speed in meters per second
-            Serial.println();
-            nextPrintRead[i] = nowMillis + 1000; // Schedule next print
+    #if PRINT_ENCODER_SPEED
+        // Print distance and speed information for each wheel
+        for (i = 0; i < 2; i++) {
+            static unsigned long nextPrintRead[2] = {0, 0}; // Next time to print
+
+            // Check if it's time to print for this wheel
+            if (nowMillis > nextPrintRead[i]) {
+                Serial.print(wheelName[i]); // Print wheel name
+                Serial.print(" ");
+                Serial.print(dt[i] / 1e3); // Print time interval in milliseconds
+                Serial.print(" msec, dir ");
+                Serial.print(dir[i]); // Print direction of wheel
+                Serial.print(" total ");
+                Serial.print(encCount[i] * 153e-6); // Print total distance in meters
+                Serial.print(" meters, speed ");
+                Serial.print(lastEncSpeed[i]); // Print speed in meters per second
+                Serial.println();
+                nextPrintRead[i] = nowMillis + 1000; // Schedule next print
+            }
+        }
+    #endif
+
+    #if PRINT_MOTION
+        // Display accelerometer reading periodically
+        static long nextMotionDump = 0;
+        if(nextMotionDump < nowMillis) {
+            dumpMotion(); // Call function to dump motion sensor data
+            nextMotionDump = nowMillis + 10000; // Schedule next dump
+        }
+    #endif
+
+    static int setspeed[2] = {0, 0}; // Array to store speed setpoints for motors
+
+    #if PID_ENABLED
+        // Closed loop control of motor speed using PID
+        static unsigned long lastPidUpdate = 0;
+
+        // Update PID control at regular intervals
+        if(nowMillis > lastPidUpdate) {
+            lastPidUpdate = nowMillis + 100; // Schedule next PID update
+
+            for (i = 0; i < 2; i++) {
+                float error = 1 * (lastEncSpeed[i] - goalSpeed[i]); // Calculate error
+                float r = pid[i].update(error); // Update PID controller
+                setspeed[i] = 255 * min(max(r, -1), 1); // Calculate speed setpoint
+
+                #if PRINT_ERROR
+                Serial.print("PID: error ");
+                Serial.print(error); // Print PID error
+                Serial.print(" result ");
+                Serial.println(r); // Print PID result
+                #endif
+            }
         }
     }
-#endif
+    #else
+        // Open loop ramp of motor speed
+        const unsigned long loopTime = nowMillis % MAX_RAMP_MS;
+        static unsigned long lastLoopTime = 0;
+        static int driveDir = 1; // Direction of ramping
 
-#if PRINT_MOTION
-    // Display accelerometer reading periodically
-    static long nextMotionDump = 0;
-    if(nextMotionDump < nowMillis) {
-        dumpMotion(); // Call function to dump motion sensor data
-        nextMotionDump = nowMillis + 10000; // Schedule next dump
-    }
-#endif
+        // Handle loop time wrap-around and switch directions
+        if (loopTime < lastLoopTime) {
+            driveDir *= -1;
+        }
 
-static int setspeed[2] = {0, 0}; // Array to store speed setpoints for motors
-
-#if PID_ENABLED
-    // Closed loop control of motor speed using PID
-    static unsigned long lastPidUpdate = 0;
-
-    // Update PID control at regular intervals
-    if(nowMillis > lastPidUpdate) {
-        lastPidUpdate = nowMillis + 100; // Schedule next PID update
-
+        // Ramp motor speed up and down
         for (i = 0; i < 2; i++) {
-            float error = 1 * (lastEncSpeed[i] - goalSpeed[i]); // Calculate error
-            float r = pid[i].update(error); // Update PID controller
-            setspeed[i] = 255 * min(max(r, -1), 1); // Calculate speed setpoint
+            if (loopTime < MAX_RAMP_MS / 2) {
+                setspeed[i] = loopTime * MAX_RAMP_PWM / (MAX_RAMP_MS / 2);
+            }
+            else if(loopTime >= MAX_RAMP_MS / 2 && loopTime < MAX_RAMP_MS) {
+                setspeed[i] = (MAX_RAMP_MS - loopTime) * MAX_RAMP_PWM / (MAX_RAMP_MS / 2);
+            }
+            setspeed[i] *= driveDir; // Apply direction to speed
 
-            #if PRINT_ERROR
-            Serial.print("PID: error ");
-            Serial.print(error); // Print PID error
-            Serial.print(" result ");
-            Serial.println(r); // Print PID result
+            #if PRINT_RAMP_INFO
+            Serial.print(wheelName[i]); // Print wheel name
+            Serial.print(" driveDir: ");
+            Serial.print(driveDir * motorDir[i]); // Print drive direction
+            Serial.print(" speed: ");
+            Serial.print(setspeed[i]); // Print speed setpoint
+            Serial.print(" time: ");
+            Serial.println(loopTime); // Print current loop time
             #endif
         }
-    }
+        lastLoopTime = loopTime; // Update last loop time
+    #endif
 
-#else
-    // Open loop ramp of motor speed
-    const unsigned long loopTime = nowMillis % MAX_RAMP_MS;
-    static unsigned long lastLoopTime = 0;
-    static int driveDir = 1; // Direction of ramping
+    #if MOTORS_ENABLED
+        // Set motor PWM for both motors
+        for (i = 0; i < 2; i++) {
+            // Limit the speed setpoint to maximum PWM value
+            if (setspeed[i] > MAX_PWM) {
+                setspeed[i] = MAX_PWM;
+            }
+            else if (setspeed[i] < -MAX_PWM) {
+                setspeed[i] = -MAX_PWM;
+            }
 
-    // Handle loop time wrap-around and switch directions
-    if (loopTime < lastLoopTime) {
-        driveDir *= -1;
-    }
-
-    // Ramp motor speed up and down
-    for (i = 0; i < 2; i++) {
-        if (loopTime < MAX_RAMP_MS / 2) {
-            setspeed[i] = loopTime * MAX_RAMP_PWM / (MAX_RAMP_MS / 2);
+            // Control motor direction and speed using PWM
+            if (setspeed[i] * motorDir[i] >= 0) {
+                analogWrite(motorPWMPin1[i], setspeed[i] * motorDir[i]);
+                analogWrite(motorPWMPin2[i], 0);
+            } else {
+                analogWrite(motorPWMPin1[i], 0);
+                analogWrite(motorPWMPin2[i], -setspeed[i] * motorDir[i]);
+            }
         }
-        else if(loopTime >= MAX_RAMP_MS / 2 && loopTime < MAX_RAMP_MS) {
-            setspeed[i] = (MAX_RAMP_MS - loopTime) * MAX_RAMP_PWM / (MAX_RAMP_MS / 2);
-        }
-        setspeed[i] *= driveDir; // Apply direction to speed
+    #else
+        // Print motor outputs when motors are disabled
+        Serial.print("Right output: ");
+        Serial.print(setspeed[RMOT]);
+        Serial.print(" Left output: ");
+        Serial.println(setspeed[LMOT]);
+    #endif
 
-        #if PRINT_RAMP_INFO
-        Serial.print(wheelName[i]); // Print wheel name
-        Serial.print(" driveDir: ");
-        Serial.print(driveDir * motorDir[i]); // Print drive direction
-        Serial.print(" speed: ");
-        Serial.print(setspeed[i]); // Print speed setpoint
-        Serial.print(" time: ");
-        Serial.println(loopTime); // Print current loop time
-        #endif
-    }
-    lastLoopTime = loopTime; // Update last loop time
-#endif
+    #if PRINT_CURRENTS
+        // Print motor currents at regular intervals
+        static auto nextCurrentRead = nowMillis;
+        if (nowMillis > nextCurrentRead) {
+            // Read current sensor value for right motor
+            auto ocm = analogRead(PIN_RD_OCM);
+            static auto lastOcmR = 0;
+            if (lastOcmR != 0 || ocm != 0) {
+                Serial.print("Right motor current: ");
+                Serial.print(ocm * 64 / 10); // Convert to mA
+                Serial.println(" mA");
+            }
+            lastOcmR = ocm;
 
-#if MOTORS_ENABLED
-    // Set motor PWM for both motors
-    for (i = 0; i < 2; i++) {
-        // Limit the speed setpoint to maximum PWM value
-        if (setspeed[i] > MAX_PWM) {
-            setspeed[i] = MAX_PWM;
-        }
-        else if (setspeed[i] < -MAX_PWM) {
-            setspeed[i] = -MAX_PWM;
-        }
+            // Read current sensor value for left motor
+            ocm = analogRead(PIN_LD_OCM);
+            static auto lastOcmL = 0;
+            if (lastOcmL != 0 || ocm != 0) {
+                Serial.print("Left motor current: ");
+                Serial.print(ocm * 64 / 10); // Convert to mA
+                Serial.println(" mA");
+            }
+            lastOcmL = ocm;
 
-        // Control motor direction and speed using PWM
-        if (setspeed[i] * motorDir[i] >= 0) {
-            analogWrite(motorPWMPin1[i], setspeed[i] * motorDir[i]);
-            analogWrite(motorPWMPin2[i], 0);
-        } else {
-            analogWrite(motorPWMPin1[i], 0);
-            analogWrite(motorPWMPin2[i], -setspeed[i] * motorDir[i]);
+            nextCurrentRead = nowMillis + 1000; // Schedule next current read
         }
-    }
-#else
-    // Print motor outputs when motors are disabled
-    Serial.print("Right output: ");
-    Serial.print(setspeed[RMOT]);
-    Serial.print(" Left output: ");
-    Serial.println(setspeed[LMOT]);
-#endif
-
-#if PRINT_CURRENTS
-    // Print motor currents at regular intervals
-    static auto nextCurrentRead = nowMillis;
-    if (nowMillis > nextCurrentRead) {
-        // Read current sensor value for right motor
-        auto ocm = analogRead(PIN_RD_OCM);
-        static auto lastOcmR = 0;
-        if (lastOcmR != 0 || ocm != 0) {
-            Serial.print("Right motor current: ");
-            Serial.print(ocm * 64 / 10); // Convert to mA
-            Serial.println(" mA");
-        }
-        lastOcmR = ocm;
-
-        // Read current sensor value for left motor
-        ocm = analogRead(PIN_LD_OCM);
-        static auto lastOcmL = 0;
-        if (lastOcmL != 0 || ocm != 0) {
-            Serial.print("Left motor current: ");
-            Serial.print(ocm * 64 / 10); // Convert to mA
-            Serial.println(" mA");
-        }
-        lastOcmL = ocm;
-
-        nextCurrentRead = nowMillis + 1000; // Schedule next current read
-    }
-#endif
+    #endif
 }
 
