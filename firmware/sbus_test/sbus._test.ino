@@ -26,15 +26,7 @@ const int PIN_VBAT    = 14;  // Battery voltage pin
 const int PIN_LD_OCM  = 20;  // Left drive overcurrent monitor pin
 const int PIN_RD_OCM  = 21;  // Right drive overcurrent monitor pin
 
-
-// Define aliases for easier understanding of the code
-#define RENC 0  // Right Encoder
-#define RMOT RENC // Right Motor, same as right encoder
-#define LENC 1  // Left Encoder
-#define LMOT LENC // Left Motor, same as left encoder
-
 // Arrays to hold encoder counts and speeds
-const char *wheelName[2] = {"Right", "Left"}; // Array to store wheel names for easy reference
 const int motorDir[2] = {1, -1};     // Array to set motor direction, 1 for forward, -1 for reverse
 int motorPWMPin1[2] = {PIN_RD_PWM1, PIN_LD_PWM1}; // Array of PWM pins for each motor
 int motorPWMPin2[2] = {PIN_RD_PWM2, PIN_LD_PWM2}; // Secondary PWM pins for each motor

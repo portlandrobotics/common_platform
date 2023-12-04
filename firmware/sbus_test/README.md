@@ -15,9 +15,16 @@
 -Important Parameters:
 
 Which serial RX port are you using?  Find this bit of code:
+
         bfs::SbusRx sbus_rx(&Serial4, true); //Setup SBUS using Serial4, Using a standard SBUS inverted signal
 
 
 If you need to change which channels you are listening on- look for this:
+
         int linear = map(data.ch[1], 172, 1810, -MAX_PWM, MAX_PWM);  // Channel 2 for linear speed
         int angular = map(data.ch[0], 172, 1810, -MAX_PWM, MAX_PWM); // Channel 1 for angular speed
+
+Want more or less speed? Change this:
+
+        // Constants for motor control
+        const int MAX_PWM      = 200;        // Maximum PWM value for motor speed 0-255
