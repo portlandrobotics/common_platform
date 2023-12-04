@@ -6,7 +6,7 @@
 #include <Arduino.h>
 #include <sbus.h>
 
-bfs::SbusRx sbus_rx(&Serial4, true); // Assuming Serial4 is connected to the SBUS receiver and the receiver is standard inverted sbus
+bfs::SbusRx sbus_rx(&Serial4, true); //Setup SBUS using Serial4, Using a standard SBUS inverted signal
 bfs::SbusData data;
 
 // Define constants to enable or disable various debug prints and features.
@@ -14,7 +14,7 @@ bfs::SbusData data;
 
 
 // Constants for motor control
-const int MAX_PWM      = 100;        // Maximum PWM value for motor speed
+const int MAX_PWM      = 200;        // Maximum PWM value for motor speed 0-255
 
 // Pin assignments for the robot's hardware components
 const int PIN_XD_EN   =  2;  // Pin for XD enable
