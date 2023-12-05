@@ -4,16 +4,16 @@
 //***********************************
 
 // Include necessary libraries
-#include <Wire.h> // I2C communication library
 #include <Arduino.h> // Main Arduino library
 #include <sbus.h> // Library for handling SBUS communication
 
 // Initialize SBUS receiver on Serial4 with inversion enabled (due to SBUS standard)
 bfs::SbusRx sbus_rx(&Serial4, true); 
 bfs::SbusData data; // Variable to store SBUS data
-
-// Define constants for enabling/disabling features
-#define MOTORS_ENABLED 1 // Enable (1) or disable (0) motor operation
+bool newSbusPacket = false;     // Flag for new SBUS packet arrival
+unsigned long lastLogTime = 0;
+const unsigned long logInterval = 500; // 500 ms for 2 Hz logging
+int setspeed[2];  //Array for holding speed values
 
 // Constants for motor control
 const int MAX_PWM = 200; // Maximum PWM value for motor speed, range 0-255
@@ -33,6 +33,13 @@ const int motorDir[2] = {1, -1}; // Motor direction (1 for forward, -1 for rever
 int motorPWMPin1[2] = {PIN_RD_PWM1, PIN_LD_PWM1}; // PWM pins for each motor
 int motorPWMPin2[2] = {PIN_RD_PWM2, PIN_LD_PWM2}; // Secondary PWM pins for each motor
 
+// Function to stop the motors
+void stopMotors() {
+    for (int i = 0; i < 2; i++) {
+        analogWrite(motorPWMPin1[i], 0);
+        analogWrite(motorPWMPin2[i], 0);
+    }
+}
 // Setup function - initializes the robot's components
 void setup() {
     // Initialize Serial communication for debugging
@@ -58,39 +65,35 @@ void setup() {
 }
 
 void loop() {
-    static int setspeed[2] = {0, 0}; // Array to store speed setpoints for motors
-    static unsigned long lastUpdateTime = 0; // Store the last update time
-    unsigned long currentMillis = millis(); // Get the current time
+   // Check if new SBUS data is available
+   if (sbus_rx.Read()) {
+        // Update SBUS data from the receiver
+        data = sbus_rx.data(); 
+        // Set flag to indicate new data has been received
+        newSbusPacket = true;  
 
-    // Read SBUS data
-    if (sbus_rx.Read()) {
-        data = sbus_rx.data(); // Update SBUS data
-
-        // Check for frame lost or failsafe activation
-        if ((data.ch[23] & 0x04) || (data.ch[23] & 0x08)) {
-            // Frame lost or failsafe activated, stop the motors
-            analogWrite(PIN_RD_PWM1, 0);
-            analogWrite(PIN_RD_PWM2, 0);
-            analogWrite(PIN_LD_PWM1, 0);
-            analogWrite(PIN_LD_PWM2, 0);
-
-            // Optional: Print a message to the serial monitor
-            Serial.println("SBUS signal issue detected, stopping motors");
-
-            return; // Skip the rest of the loop
+        // Check if the SBUS receiver is in failsafe mode
+        if (data.failsafe) {
+            // If in failsafe mode, stop all motors for safety
+            stopMotors(); 
+            // Log to the serial monitor that failsafe mode is activated
+            Serial.println("SBUS entered failsafe mode.");
+            // Exit the loop early to avoid executing further commands
+            return;
         }
 
-        // Convert SBUS channel values to motor speeds
+        // Convert the SBUS channel values to motor speeds
+        // 'map' scales the SBUS channel range to the motor speed range
         int linear = map(data.ch[1], 172, 1810, -MAX_PWM, MAX_PWM); // Channel 2 for linear speed
         int angular = map(data.ch[0], 172, 1810, -MAX_PWM, MAX_PWM); // Channel 1 for angular speed
 
-        // Calculate motor speeds for turning
-        setspeed[0] = constrain(linear - angular, -MAX_PWM, MAX_PWM);  // Speed for Motor 0
-        setspeed[1] = constrain(linear + angular, -MAX_PWM, MAX_PWM);  // Speed for Motor 1
+        // Calculate differential motor speeds for turning
+        setspeed[0] = constrain(linear - angular, -MAX_PWM, MAX_PWM);  // Motor 0 speed
+        setspeed[1] = constrain(linear + angular, -MAX_PWM, MAX_PWM);  // Motor 1 speed
 
-        // Apply calculated motor speeds
+        // Apply the calculated motor speeds
         for (int i = 0; i < 2; i++) {
-            // Control motor direction and speed using PWM
+            // Control the direction and speed of each motor
             if (setspeed[i] * motorDir[i] >= 0) {
                 analogWrite(motorPWMPin1[i], setspeed[i] * motorDir[i]);
                 analogWrite(motorPWMPin2[i], 0);
@@ -99,33 +102,28 @@ void loop() {
                 analogWrite(motorPWMPin2[i], -setspeed[i] * motorDir[i]);
             }
         }
-    } else {
-        // No SBUS data received, stop the motors
-        analogWrite(PIN_RD_PWM1, 0);
-        analogWrite(PIN_RD_PWM2, 0);
-        analogWrite(PIN_LD_PWM1, 0);
-        analogWrite(PIN_LD_PWM2, 0);
+    } 
 
-        // Optional: Print a message to the serial monitor
-        Serial.println("No SBUS data received, stopping motors");
+    // Check if a new SBUS packet flag is set
+    if (newSbusPacket) {
+        // Log data at a limited rate of 2Hz
+        if (millis() - lastLogTime >= logInterval) {
+            // Log the values of the first two SBUS channels
+            Serial.print("SBUS Channel 1: ");
+            Serial.print(data.ch[0]);
+            Serial.print(", Channel 2: ");
+            Serial.println(data.ch[1]);
 
-        return; // Skip the rest of the loop
-    }
+            // Log the calculated speeds for both motors
+            Serial.print("Motor 0 Speed: ");
+            Serial.print(setspeed[0]);
+            Serial.print(", Motor 1 Speed: ");
+            Serial.println(setspeed[1]);
 
-    // Update and log every 0.5 seconds
-    if (currentMillis - lastUpdateTime >= 500) {
-        lastUpdateTime = currentMillis; // Update the last update time
-
-        // Log SBUS data
-        Serial.print("SBUS Channel 1: ");
-        Serial.print(data.ch[0]);
-        Serial.print(", Channel 2: ");
-        Serial.println(data.ch[1]);
-
-        // Log calculated motor speeds
-        Serial.print("Motor 0 Speed: ");
-        Serial.print(setspeed[0]);
-        Serial.print(", Motor 1 Speed: ");
-        Serial.println(setspeed[1]);
+            // Reset the new SBUS packet flag after processing
+            newSbusPacket = false;
+            // Update the last logging time
+            lastLogTime = millis();
+        }
     }
 }
