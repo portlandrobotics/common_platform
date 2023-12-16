@@ -4,7 +4,7 @@
 This project involves using an Arduino to test an HC-SR04 ultrasonic sensor. The `ultrasonic_test.ino` sketch measures the distance to an object and prints the result to the Serial Monitor.
 
 ## Requirements
-- Arduino (Uno, Mega, or similar)
+- Arduino Compatible Device (Teensy, Uno, Mega, or similar)
 - HC-SR04 Ultrasonic Sensor
 - Jumper Wires
 
@@ -14,9 +14,11 @@ Connect the ultrasonic sensor to the Teensy 4.0:
 - GND to GND
 - TRIG to Pin 9
 - ECHO to Pin 15
+  
 OR
-- Hook to ULTRASONIC1 on Common Robotics Platform Main Board. 
-- Ensure R6 3.3k and R7 4.6k resistors are installed so we don't burn out the teensy.
+
+- Hook sensor to ULTRASONIC1 on Common Robotics Platform Main Board. 
+  - Ensure R6 3.3k and R7 4.6k resistors are installed so we don't burn out the teensy.
 
 ## Installation
 1. Connect the Teensy/Arduino to your computer.
