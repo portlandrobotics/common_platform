@@ -17,7 +17,7 @@ Connect the ultrasonic sensor to the Teensy 4.0:
   
 OR
 
-- Hook sensor to ULTRASONIC1 on Common Robotics Platform Main Board. 
+- Hook sensor to ULTRASONIC1 on Common Robotics Platform Main Board. Pin 1 VCC, Pin 2 Trigger, Pin 3 Echo, Pin 4 Ground. Looking at the common robotics platform board from the top, find the label "ULTRASONIC1" - Pin 1 is toward the U on ULTRASONIC1.
   - Ensure R6 3.3k and R7 4.6k resistors are installed so we don't burn out the teensy.
 
 ## Installation
