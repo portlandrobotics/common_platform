@@ -1,7 +1,7 @@
 # Ultrasonic Sensor Test
 
 ## Overview
-This project involves using an Arduino to test an HC-SR04 ultrasonic sensor. The `ultrasonic_test.ino` sketch measures the distance to an object and prints the result to the Serial Monitor.
+This project involves using an Arduino/Teensy to test an HC-SR04 ultrasonic sensor. The `ultrasonic_test.ino` sketch measures the distance to an object and prints the result to the Serial Monitor.
 
 ## Requirements
 - Arduino Compatible Device (Teensy, Uno, Mega, or similar)
