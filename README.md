@@ -213,7 +213,7 @@ Distributed under the MIT License and the Solderpad Hardware License v2.1. See [
 [stars-url]: https://github.com/portlandrobotics/common_platform/stargazers
 [issues-shield]: https://img.shields.io/github/issues/portlandrobotics/common_platform.svg?style=for-the-badge
 [issues-url]: https://github.com/portlandrobotics/common_platform/issues
-[license-shield]: https://img.shields.io/github/license/portlandrobotics/common_platform.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/badge/license-mit_%26_solderpad-brightgreen?style=for-the-badge
 [license-url]: https://github.com/portlandrobotics/common_platform/blob/master/LICENSE.txt
 [arduino-ide]: https://img.shields.io/badge/Arduino_IDE-00979D?style=for-the-badge&logo=arduino&logoColor=white
 [arduino-url]: https://www.arduino.cc/en/software
