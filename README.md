@@ -166,6 +166,8 @@ Get the latest codebase for the PARTS CRP project by cloning the repository.
 
 - Use Git to clone the repository or download it directly from the [PARTS CRP GitHub page](https://github.com/portlandrobotics/common_platform).
 
+_For detailed instructions, please refer to the [Documentation](https://parts-common-platform.readthedocs.io/en/latest/)_
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
