@@ -171,10 +171,18 @@ Get the latest codebase for the PARTS CRP project by cloning the repository.
 
 
 
-<!-- USAGE EXAMPLES -->
 ## Usage
-_TODO
-Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+
+This section provides practical examples of how to use the PARTS Common Robotics Platform effectively. We'll start with a basic test to ensure your setup is functioning correctly.
+
+### Starting with the Basic Test
+
+1. **Flash the Teensy 4.0 Board:**
+   Begin by flashing the Teensy 4.0 board with the basic test code found in the repository at `/firmware/basic_test/basic_test.ino`. This initial test is crucial for validating your setup.
+
+2. **Expected Behavior:**
+   Upon successful flashing, the robot should exhibit a simple behavior pattern: moving forward, pausing, and then moving backward.
+
 
 _For more examples, please refer to the [Documentation](https://parts-common-platform.readthedocs.io/en/latest/)_
 
