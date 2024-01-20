@@ -161,14 +161,27 @@ _For more examples, please refer to the [Documentation](https://parts-common-pla
 
 <!-- ROADMAP -->
 ## Roadmap
-_TODO
-- [x] Add Changelog
-- [x] Add back to top links
-- [ ] Add Additional Templates w/ Examples
-- [ ] Add "components" document to easily copy & paste sections of the readme
-- [ ] Multi-language Support
-    - [ ] Chinese
-    - [ ] Spanish
+
+- [ ] Build hardware library for common robotics platform
+- [ ] Build manual for open robotics platform
+     - [ ] SBC
+     - [ ] Microcontroller
+     - [ ] Software
+     - [ ] Power
+     - [ ] Motion
+     - [ ] Communication
+     - [ ] Sensors and cameras
+     - [ ] Soldering
+     - [ ] PCB design and ordering
+- [ ] Create 3D model of platform for Gazebo and other sims
+- [ ] ROS2 Setup
+    - [ ] micro-ROS + ROS2 Humble
+    - [ ] control
+    - [ ] commuication
+    - [ ] navigation
+    - [ ] avoidance
+ - [ ] Demo of system
+
 
 See the [open issues](https://github.com/portlandrobotics/common_platform/issues) for a full list of proposed features (and known issues).
 
