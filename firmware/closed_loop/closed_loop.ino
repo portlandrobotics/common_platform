@@ -14,9 +14,6 @@ const int PIN_RD_OCM  = 21;
 const int PIN_RENCB   = 22;
 const int PIN_RENCA   = 23;
 
-<<<<<<< Updated upstream
-#define PRINT_MOTION 1
-=======
 #define ROS 1
 #define PRINT_MOTION 1
 
@@ -69,50 +66,7 @@ enum states {
   AGENT_DISCONNECTED
 } state;
 #endif
->>>>>>> Stashed changes
 
-
-#include <Arduino.h>
-#if PRINT_MOTION
-#include <Wire.h>
-#endif
-#include <micro_ros_arduino.h>
-
-#include <stdio.h>
-#include <rcl/rcl.h>
-#include <rcl/error_handling.h>
-#include <rclc/rclc.h>
-#include <rclc/executor.h>
-
-#include <geometry_msgs/msg/twist.h>
-
-rcl_subscription_t subscriber;
-geometry_msgs__msg__Twist msg;
-rclc_executor_t executor;
-rcl_allocator_t allocator;
-rclc_support_t support;
-rcl_node_t node;
-
-#define LED_PIN 13
-
-#define RENC 0
-#define RMOT RENC
-#define LENC 1
-#define LMOT LENC
-
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){return false;}}
-#define EXECUTE_EVERY_N_MS(MS, X)  do { \
-  static volatile int64_t init = -1; \
-  if (init == -1) { init = uxr_millis();} \
-  if (uxr_millis() - init > MS) { X; init = uxr_millis();} \
-} while (0)\
-
-enum states {
-  WAITING_AGENT,
-  AGENT_AVAILABLE,
-  AGENT_CONNECTED,
-  AGENT_DISCONNECTED
-} state;
 
 class PidControl {
 public:
@@ -161,15 +115,8 @@ public:
     if(targetSpeed != speed) {
       targetSpeed=speed;
       pid.errorSum=0;
-<<<<<<< Updated upstream
-#if 1
-      SerialUSB1.print("nsp ");
-      SerialUSB1.println(speed);
-#endif
-=======
       SERIAL_OUT.print("nsp ");
       SERIAL_OUT.println(speed);
->>>>>>> Stashed changes
     }
   }
   void resetCounter() { counter=0; lastCounter=0; }
@@ -177,21 +124,12 @@ public:
   void readCurrent() {
     auto ocm = analogRead(ciPinCurrent);
     // .5V per amp, 3.3V ref, 1024 counts, so 3.3V / 1024 counts / .5V/A = 6.4mA/count
-<<<<<<< Updated upstream
-    //SerialUSB1.print(ocm);
-    static auto lastOcm = 0;
-    if(lastOcm != 0 || ocm != 0) {
-//      SerialUSB1.print("Left motor current: ");
-//      SerialUSB1.print(ocm*64/10);
-//      SerialUSB1.println(" mA");
-=======
     //SERIAL_OUT.print(ocm);
     static auto lastOcm = 0;
     if(lastOcm != 0 || ocm != 0) {
       SERIAL_OUT.print("Left motor current: ");
       SERIAL_OUT.print(ocm*64/10);
       SERIAL_OUT.println(" mA");
->>>>>>> Stashed changes
     }
     lastOcm = ocm;
   }
@@ -224,21 +162,12 @@ public:
         sawEdge=true;
 
 #if 0
-<<<<<<< Updated upstream
-        SerialUSB1.print("enc ");
-        SerialUSB1.print(enc);
-        SerialUSB1.print(" ");
-        SerialUSB1.print(dir);
-        SerialUSB1.print(" ");
-        SerialUSB1.println(speed);
-=======
         SERIAL_OUT.print("enc ");
         SERIAL_OUT.print(enc);
         SERIAL_OUT.print(" ");
         SERIAL_OUT.print(dir);
         SERIAL_OUT.print(" ");
         SERIAL_OUT.println(speed);
->>>>>>> Stashed changes
 #endif
       }
   }
@@ -253,13 +182,8 @@ public:
     float err = targetSpeed-lastSpeed;
     //mpwm += err * P;
     mpwm += pid.update(err);
-<<<<<<< Updated upstream
-    //SerialUSB1.print(" ");
-    //SerialUSB1.println(counter-lastCounter);
-=======
     //SERIAL_OUT.print(" ");
     //SERIAL_OUT.println(counter-lastCounter);
->>>>>>> Stashed changes
     lastCounter=counter;
 
     int setspeed = mpwm*255;
@@ -270,22 +194,6 @@ public:
 
     //static
     if(msgcnt++>100 && setspeed != 0) {
-<<<<<<< Updated upstream
-      //SerialUSB1.print(' ');
-      //SerialUSB1.print((ciPinCurrent==PIN_LD_OCM)?'L':'R');
-      //SerialUSB1.print(ciPinCurrent);
-      //SerialUSB1.print(" update ");
-      //SerialUSB1.print(targetSpeed);
-      //SerialUSB1.print(" ");
-      //SerialUSB1.print(lastSpeed);
-      //SerialUSB1.print(" ");
-      //SerialUSB1.print(err);
-      //SerialUSB1.print(" ");
-      //SerialUSB1.println(setspeed);
-      char message[512];
-      sprintf(message,"U2 %f %d, %f - %f",mpwm,setspeed,targetSpeed,lastSpeed);
-      //SerialUSB1.println(message);
-=======
       SERIAL_OUT.print(' ');
       SERIAL_OUT.print((ciPinCurrent==PIN_LD_OCM)?'L':'R');
       //SERIAL.print(ciPinCurrent);
@@ -300,7 +208,6 @@ public:
       char message[512];
       sprintf(message,"U2 %f %d, %f - %f",mpwm,setspeed,targetSpeed,lastSpeed);
       SERIAL_OUT.println(message);
->>>>>>> Stashed changes
       msgcnt=0;
     }
     if(targetSpeed==0) {
@@ -338,7 +245,6 @@ class Motion {
   float theta;
   int32_t lastLeft,lastRight;
   float track=0.142;//meters
-  float wheelRadius=0.035; // wheel radius in meters
   float meterspercount=0.000153;
 
   void reset() {
@@ -354,13 +260,8 @@ class Motion {
     float AR = (newRight-lastRight)*meterspercount;
     char pbuf[512];
     sprintf(pbuf,"move %f,%f",AL,AR);
-<<<<<<< Updated upstream
-    // SerialUSB1.println(pbuf);
-    //SerialUSB1.println(AL);
-=======
     SERIAL_OUT.println(pbuf);
     //SERIAL_OUT.println(AL);
->>>>>>> Stashed changes
     lastLeft=newLeft;
     lastRight=newRight;
 
@@ -372,15 +273,9 @@ class Motion {
     }
     else {
       float radius = track/2*(AR+AL)/(AR-AL);
-<<<<<<< Updated upstream
-      //SerialUSB1.println(radius);
-      float insttheta = (AR-AL)/track;
-      //SerialUSB1.println(insttheta);
-=======
       //SERIAL_OUT.println(radius);
       float insttheta = (AR-AL)/track;
       //SERIAL_OUT.println(insttheta);
->>>>>>> Stashed changes
       Point RC(location);
       RC.x -= radius * sin(theta);
       RC.y += radius * cos(theta);
@@ -397,20 +292,12 @@ class Motion {
   }
   void print() {
     char buf[256];
-<<<<<<< Updated upstream
-    sprintf(buf,"Pose: %f, %f %f",location.x,location.y,theta*180/M_PI);
-    SerialUSB1.println(buf);
-  }
-};
-
-=======
     sprintf(buf,"Pose: %f,%f %f",location.x,location.y,theta*180/M_PI);
     SERIAL_OUT.println(buf);
   }
 };
 
 #if ROS
->>>>>>> Stashed changes
 void error_loop()
 {
 	while (1)
@@ -425,17 +312,10 @@ void subscription_callback(const void *msgin)
 {
 	const geometry_msgs__msg__Twist *msg = (const geometry_msgs__msg__Twist *)msgin;
 	digitalWrite(LED_PIN, (msg->linear.x == 0) ? LOW : HIGH);
-<<<<<<< Updated upstream
- SerialUSB1.println("TWIST");
-  parseTwist(msg);
-}
-
-=======
  SERIAL_OUT.println("TWIST");
   parseTwist(msg);
 }
 #endif
->>>>>>> Stashed changes
 
 //globals
 
@@ -483,57 +363,15 @@ void destroy_entities()
 }
 #endif
 
-bool create_entities()
-{
-  allocator = rcl_get_default_allocator();
-
-  // create init_options
-  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-
-	// create node
-	RCCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
-
-	// create subscriber
-	RCCHECK(rclc_subscription_init_default(
-		&subscriber,
-		&node,
-		ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-		"cmd_vel"));
-
-	// create executor
-	RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
-	RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
-
-
-  return true;
-}
-
-void destroy_entities()
-{
-  rmw_context_t * rmw_context = rcl_context_get_rmw_context(&support.context);
-  (void) rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
-
-  rcl_subscription_fini(&subscriber, &node);
-  rclc_executor_fini(&executor);
-  rcl_node_fini(&node);
-  rclc_support_fini(&support);
-}
-
 void setup() {
-<<<<<<< Updated upstream
-=======
 #if ROS
->>>>>>> Stashed changes
 	set_microros_transports();
 	pinMode(LED_PIN, OUTPUT);
 	digitalWrite(LED_PIN, LOW);
 
 	delay(2000);
   state = WAITING_AGENT;
-<<<<<<< Updated upstream
-=======
   #endif
->>>>>>> Stashed changes
 
   leftMotor.pid.P = .04;
   leftMotor.pid.I = 0;
@@ -570,26 +408,16 @@ void setup() {
   Wire.write(0x6b);
   Wire.write(0x80);
   auto rv = Wire.endTransmission(true);
-<<<<<<< Updated upstream
-//  SerialUSB1.print("setup returned ");
-//  SerialUSB1.println(rv);
-=======
   SERIAL_OUT.print("setup returned ");
   SERIAL_OUT.println(rv);
->>>>>>> Stashed changes
 
   Wire.begin();
   Wire.beginTransmission(0x68);
   Wire.write(0x6b);
   Wire.write(0x00);
   rv = Wire.endTransmission(true);
-<<<<<<< Updated upstream
-//  SerialUSB1.print("setup returned ");
-//  SerialUSB1.println(rv);
-=======
   SERIAL_OUT.print("setup returned ");
   SERIAL_OUT.println(rv);
->>>>>>> Stashed changes
 
 }
 
@@ -597,11 +425,6 @@ int32_t leftTargetDistance=0;
 int32_t rightTargetDistance=0;
 float targetHeading=0;
 bool cmdDrive=true;
-<<<<<<< Updated upstream
-float targetLinearVelocity = 0.0;
-float targetAngularVelocity = 0.0;
-=======
->>>>>>> Stashed changes
 bool move = false;
 #if ROS
 float targetLinearVelocity = 0.0;
@@ -621,12 +444,8 @@ void parseTwist(const geometry_msgs__msg__Twist *msg) {
       move=false;
   }
 }
-<<<<<<< Updated upstream
-
-=======
 #else
 #endif
->>>>>>> Stashed changes
 void parseCommand(const char * const cmd) {
   if(strchr("LRD",cmd[0])) {
     float tmp = atof(cmd+1);
@@ -673,38 +492,18 @@ void parseCommand(const char * const cmd) {
     differential.I=tmp;
   }
   else if(cmd[0]=='V') {
-    targetLinearVelocity=atof(cmd+1);
+    topspeed=atof(cmd+1);
   }
   else {
-<<<<<<< Updated upstream
-    SerialUSB1.println("Error");
-    return;
-  }
-
-  SerialUSB1.println("OK");
-=======
     SERIAL_OUT.println("Error");
     return;
   }
 
   SERIAL_OUT.println("OK");
->>>>>>> Stashed changes
 }
 
 void printStatus() {
   char buf[128];
-<<<<<<< Updated upstream
-  // sprintf(buf,"LT %ld, LC %ld, RT %ld, RC %ld %f",
-  //   leftTargetDistance,leftMotor.getCounter(),
-  //   rightTargetDistance,rightMotor.getCounter(),leftMotor.pid.P);
-  // SerialUSB1.println(buf);
-  sprintf(buf, "LV %f, RV %f", leftMotor.getSpeed(), rightMotor.getSpeed());
-  SerialUSB1.println(buf);
-}
-
-// Update wheel RPM for each wheel using differential drive kinematics
-void driveControl() {
-=======
   sprintf(buf,"LT %ld, LC %ld, RT %ld, RC %ld %f",
     leftTargetDistance,leftMotor.getCounter(),
     rightTargetDistance,rightMotor.getCounter(),leftMotor.pid.P);
@@ -714,13 +513,10 @@ void driveControl() {
 #if ROS
 // Update wheel RPM for each wheel using differential drive kinematics
 void drivecontrol() {
->>>>>>> Stashed changes
   float leftVelocity =  targetLinearVelocity - 0.5*targetAngularVelocity*motion.track;
   float rightVelocity = targetLinearVelocity + 0.5*targetAngularVelocity*motion.track;
   leftMotor.setTargetSpeed(leftVelocity);
   rightMotor.setTargetSpeed(rightVelocity);
-<<<<<<< Updated upstream
-=======
 }
   #else
 void drivecontrol(MotorControl * mc, int target,float corr) {
@@ -742,20 +538,16 @@ void drivecontrol(MotorControl * mc, int target,float corr) {
     newSpeed=0;
   }
   mc->setTargetSpeed(newSpeed);
->>>>>>> Stashed changes
 }
 #endif
 
-void loop()
-{
-  // static int32_t x=0,y=0;
-  // motion.print();
-  // motion.update(x+=100,y+=101);
+void loop() {
+  //static int32_t x=0,y=0;
+  //motion.print();
+  //motion.update(x+=100,y+=101);
+
 
   static char cmdbuf[16];
-<<<<<<< Updated upstream
-  static size_t cmdbufpos = 0;
-=======
   static size_t cmdbufpos=0;
 #if !ROS
   static float corr=0;
@@ -763,17 +555,11 @@ void loop()
 #if 0
   return;
 #endif
->>>>>>> Stashed changes
 
   leftMotor.readSensor();
   rightMotor.readSensor();
   const auto nowMicros = micros();
   static auto nextMotionUpdate = nowMicros;
-<<<<<<< Updated upstream
-  if (nowMicros >= nextMotionUpdate)
-  {
-    motion.update(leftMotor.getCounter(), rightMotor.getCounter());
-=======
   if (nowMicros >= nextMotionUpdate) {
     motion.update(leftMotor.getCounter(),rightMotor.getCounter());
   #if ROS
@@ -789,15 +575,11 @@ void loop()
       corr =0;
     }
     #endif
->>>>>>> Stashed changes
     leftMotor.motionUpdate();
     rightMotor.motionUpdate();
     nextMotionUpdate += 100000; // 10ms or 100Hz
   }
 
-<<<<<<< Updated upstream
-  driveControl();
-=======
   #if ROS
   drivecontrol();
   #else
@@ -808,31 +590,14 @@ void loop()
   drivecontrol(&leftMotor,leftTargetDistance,corr);
   drivecontrol(&rightMotor,rightTargetDistance,-corr);
   #endif
->>>>>>> Stashed changes
   static auto nextStatusUpdate = nowMicros;
-  if (nowMicros >= nextStatusUpdate)
-  {
+  if(nowMicros >= nextStatusUpdate) {
     printStatus();
     motion.print();
-    nextStatusUpdate = nowMicros + 1000000;
+    nextStatusUpdate = nowMicros+1000000;
   }
 
   static auto nextVoltageUpdate = nowMicros;
-<<<<<<< Updated upstream
-  if (nowMicros >= nextVoltageUpdate)
-  {
-    SerialUSB1.print("Voltage: ");
-    SerialUSB1.println(analogRead(PIN_VBAT));
-    nextVoltageUpdate = nowMicros + 10000000;
-  }
-
-  while (SerialUSB1.available())
-  {
-    char c = SerialUSB1.read();
-    if (c == '\n' || c == '\r')
-    {
-      cmdbuf[cmdbufpos] = 0;
-=======
   if(nowMicros >= nextVoltageUpdate) {
     SERIAL_OUT.print("Voltage: ");
      SERIAL_OUT.println(analogRead(PIN_VBAT));
@@ -843,22 +608,15 @@ void loop()
     char c = SERIAL_OUT.read();
     if(c == '\n' || c == '\r') {
       cmdbuf[cmdbufpos]=0;
->>>>>>> Stashed changes
       parseCommand(cmdbuf);
-      cmdbufpos = 0;
+      cmdbufpos=0;
     }
-    else if (cmdbufpos < (sizeof(cmdbuf) - 1))
-    {
-      cmdbuf[cmdbufpos++] = c;
+    else if(cmdbufpos < (sizeof(cmdbuf)-1)) {
+      cmdbuf[cmdbufpos++]=c;
     }
   }
-<<<<<<< Updated upstream
-
-  switch (state)
-=======
   #if ROS
    switch (state)
->>>>>>> Stashed changes
   {
   case WAITING_AGENT:
     EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) ? AGENT_AVAILABLE : WAITING_AGENT;);
@@ -893,8 +651,5 @@ void loop()
   {
     digitalWrite(LED_PIN, 0);
   }
-<<<<<<< Updated upstream
-=======
 #endif
->>>>>>> Stashed changes
 }
