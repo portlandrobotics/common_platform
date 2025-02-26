@@ -14,7 +14,7 @@ const int PIN_RD_OCM  = 21;
 const int PIN_RENCB   = 22;
 const int PIN_RENCA   = 23;
 
-#define ROS 1
+#define ROS 0
 #define PRINT_MOTION 1
 
 #if ROS
@@ -426,10 +426,10 @@ int32_t rightTargetDistance=0;
 float targetHeading=0;
 bool cmdDrive=true;
 bool move = false;
+float topspeed=.1;
 #if ROS
 float targetLinearVelocity = 0.0;
 float targetAngularVelocity = 0.0;
-float topspeed=.1;
 
 void parseTwist(const geometry_msgs__msg__Twist *msg) {
 	const float linear_vel = msg->linear.x;
