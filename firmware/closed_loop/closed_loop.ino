@@ -14,7 +14,7 @@ const int PIN_RD_OCM = 21;
 const int PIN_RENCB = 22;
 const int PIN_RENCA = 23;
 
-#define ROS 1 // 0 for Teensy stand alone, 1 for ROS based firmware
+#define ROS 1  // 0 for Teensy stand alone, 1 for ROS based firmware
 #define PRINT_MOVES 0
 
 #if ROS
@@ -50,23 +50,23 @@ rcl_node_t node;
 #define LENC 1
 #define LMOT LENC
 
-#define RCCHECK(fn)                                                            \
-  {                                                                            \
-    rcl_ret_t temp_rc = fn;                                                    \
-    if ((temp_rc != RCL_RET_OK)) {                                             \
-      return false;                                                            \
-    }                                                                          \
+#define RCCHECK(fn) \
+  { \
+    rcl_ret_t temp_rc = fn; \
+    if ((temp_rc != RCL_RET_OK)) { \
+      return false; \
+    } \
   }
-#define EXECUTE_EVERY_N_MS(MS, X)                                              \
-  do {                                                                         \
-    static volatile int64_t init = -1;                                         \
-    if (init == -1) {                                                          \
-      init = uxr_millis();                                                     \
-    }                                                                          \
-    if (uxr_millis() - init > MS) {                                            \
-      X;                                                                       \
-      init = uxr_millis();                                                     \
-    }                                                                          \
+#define EXECUTE_EVERY_N_MS(MS, X) \
+  do { \
+    static volatile int64_t init = -1; \
+    if (init == -1) { \
+      init = uxr_millis(); \
+    } \
+    if (uxr_millis() - init > MS) { \
+      X; \
+      init = uxr_millis(); \
+    } \
   } while (0)
 
 enum states {
@@ -80,16 +80,73 @@ enum states {
 class PidControl {
 public:
   float P = 1, I = .1, D = .1;
-  float lastError;
-  float errorSum;
-  long errorCount;
-  PidControl() {}
+  float lastError = 0;
+  float errorSum = 0;
+  float lastTime = 0;
+  float maxOutput = 1.0;    // Maximum output value
+  float maxErrorSum = 1.0;  // Maximum integral windup
+  float deadband = 0.01;    // Error deadband
+  float filterCoeff = 0.1;  // Derivative low-pass filter coefficient (0-1)
+  float lastDeriv = 0;      // Last derivative value for filtering
+
+  PidControl() {
+    reset();
+  }
+
+  void reset() {
+    lastError = 0;
+    errorSum = 0;
+    lastTime = micros() / 1000000.0;  // Convert to seconds
+    lastDeriv = 0;
+  }
+
   float update(float error) {
-    float rv = P * error + I * errorSum + D * (error - lastError);
+    // Get current time and calculate delta time
+    float currentTime = micros() / 1000000.0;  // Convert to seconds
+    float dt = currentTime - lastTime;
+    if (dt <= 0) dt = 0.001;  // Prevent division by zero
+
+    // Apply deadband to error
+    if (fabs(error) < deadband) {
+      error = 0;
+    }
+
+    // Calculate proportional term
+    float pTerm = P * error;
+
+    // Calculate integral term with anti-windup
+    errorSum += error * dt;
+    errorSum = constrain(errorSum, -maxErrorSum, maxErrorSum);
+    float iTerm = I * errorSum;
+
+    // Calculate derivative term with filtering
+    float deriv = (error - lastError) / dt;
+    lastDeriv = filterCoeff * deriv + (1 - filterCoeff) * lastDeriv;
+    float dTerm = D * lastDeriv;
+
+    // Calculate total output
+    float output = pTerm + iTerm + dTerm;
+
+    // Limit output
+    output = constrain(output, -maxOutput, maxOutput);
+
+    // Store error for next iteration
     lastError = error;
-    errorSum += error;
-    errorCount++;
-    return rv;
+    lastTime = currentTime;
+
+    return output;
+  }
+
+  // Method to configure limits
+  void setLimits(float maxOut, float maxIntegral) {
+    maxOutput = maxOut;
+    maxErrorSum = maxIntegral;
+  }
+
+  // Method to configure filtering
+  void setFiltering(float deadbandValue, float filterValue) {
+    deadband = deadbandValue;
+    filterCoeff = constrain(filterValue, 0, 1);
   }
 };
 
@@ -116,12 +173,18 @@ public:
   PidControl pid;
   MotorControl(int pinCurrent, int pinEncA, int pinEncB, int pinPwmA,
                int pinPwmB)
-      : ciPinCurrent(pinCurrent), ciPinEncA(pinEncA), ciPinEncB(pinEncB),
-        ciPwmA(pinPwmA), ciPwmB(pinPwmB){};
+    : ciPinCurrent(pinCurrent), ciPinEncA(pinEncA), ciPinEncB(pinEncB),
+      ciPwmA(pinPwmA), ciPwmB(pinPwmB) {};
 
-  int32_t getCounter() { return counter; }
-  float getSpeed() { return lastSpeed; }
-  float getTargetSpeed() { return targetSpeed; }
+  int32_t getCounter() {
+    return counter;
+  }
+  float getSpeed() {
+    return lastSpeed;
+  }
+  float getTargetSpeed() {
+    return targetSpeed;
+  }
   void setTargetSpeed(float speed) {
     if (targetSpeed != speed) {
       targetSpeed = speed;
@@ -168,7 +231,7 @@ public:
       if (dir < -2)
         dir += 4;
       counter += dir;
-      float speed = 153. / dt * dir; // micrometers / microsecond => m/s
+      float speed = 153. / dt * dir;  // micrometers / microsecond => m/s
 
       lastSpeed = speed;
       lastEnc = enc;
@@ -260,7 +323,7 @@ public:
   Point location;
   float theta;
   int32_t lastLeft, lastRight;
-  float track = 0.142; // meters
+  float track = 0.142;  // meters
   float meterspercount = 0.000153;
 
   void reset() {
@@ -296,10 +359,8 @@ public:
       RC.x -= radius * sin(theta);
       RC.y += radius * cos(theta);
       Point newloc(RC);
-      newloc.x += cos(insttheta) * (location.x - RC.x) -
-                  sin(insttheta) * (location.y - RC.y);
-      newloc.y += sin(insttheta) * (location.x - RC.x) +
-                  cos(insttheta) * (location.y - RC.y);
+      newloc.x += cos(insttheta) * (location.x - RC.x) - sin(insttheta) * (location.y - RC.y);
+      newloc.y += sin(insttheta) * (location.x - RC.x) + cos(insttheta) * (location.y - RC.y);
       location = newloc;
       theta += insttheta;
       // todo: normalize to 0<=theta<2*PI
@@ -326,7 +387,7 @@ void error_loop() {
 // twist message cb
 void subscription_callback(const void *msgin) {
   const geometry_msgs__msg__Twist *msg =
-      (const geometry_msgs__msg__Twist *)msgin;
+    (const geometry_msgs__msg__Twist *)msgin;
   digitalWrite(LED_PIN, (msg->linear.x == 0) ? LOW : HIGH);
   SERIAL_OUT.println("TWIST");
   parseTwist(msg);
@@ -352,12 +413,12 @@ bool create_entities() {
 
   // create node
   RCCHECK(
-      rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
+    rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
 
   // create subscriber
   RCCHECK(rclc_subscription_init_default(
-      &subscriber, &node,
-      ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "cmd_vel"));
+    &subscriber, &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "cmd_vel"));
 
   // create executor
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
@@ -387,7 +448,15 @@ void setup() {
   delay(2000);
   state = WAITING_AGENT;
 #endif
+  // TODO: figure out the right values for these.
+  leftMotor.pid.setLimits(1.0, 0.5);
+  leftMotor.pid.setFiltering(0.01, 0.01);
+  rightMotor.pid.setLimits(1.0, 0.5);
+  rightMotor.pid.setFiltering(0.01, 0.01);
+  differential.setLimits(1.0, 0.5);
+  differential.setFiltering(0.01, 0.01);
 
+  // TODO: figure out the right values for D and maybe I.
   leftMotor.pid.P = .04;
   leftMotor.pid.I = .0;
   leftMotor.pid.D = .0;
@@ -521,9 +590,9 @@ void printStatus() {
 // Update wheel RPM for each wheel using differential drive kinematics
 void drivecontrol() {
   float leftVelocity =
-      targetLinearVelocity - 0.5 * targetAngularVelocity * motion.track;
+    targetLinearVelocity - 0.5 * targetAngularVelocity * motion.track;
   float rightVelocity =
-      targetLinearVelocity + 0.5 * targetAngularVelocity * motion.track;
+    targetLinearVelocity + 0.5 * targetAngularVelocity * motion.track;
   leftMotor.setTargetSpeed(leftVelocity);
   rightMotor.setTargetSpeed(rightVelocity);
 }
@@ -536,11 +605,11 @@ void drivecontrol(MotorControl *mc, int target, float corr) {
     if (dLeft > 100)
       newSpeed = topspeed + corr;
     else if (dLeft > 10)
-      newSpeed = topspeed + corr; //(.02);
+      newSpeed = topspeed + corr;  //(.02);
     else if (dLeft > -10)
       newSpeed = (0);
     else if (dLeft > -100)
-      newSpeed = -topspeed + corr; //-.02;
+      newSpeed = -topspeed + corr;  //-.02;
     else
       newSpeed = -topspeed + corr;
   } else {
@@ -585,7 +654,7 @@ void loop() {
 #endif
     leftMotor.motionUpdate();
     rightMotor.motionUpdate();
-    nextMotionUpdate += 100000; // 10ms or 100Hz
+    nextMotionUpdate += 100000;  // 10ms or 100Hz
   }
 
 #if ROS
@@ -624,32 +693,32 @@ void loop() {
   }
 #if ROS
   switch (state) {
-  case WAITING_AGENT:
-    EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1))
+    case WAITING_AGENT:
+      EXECUTE_EVERY_N_MS(500, state = (RMW_RET_OK == rmw_uros_ping_agent(100, 1))
                                         ? AGENT_AVAILABLE
                                         : WAITING_AGENT;);
-    break;
-  case AGENT_AVAILABLE:
-    state = (true == create_entities()) ? AGENT_CONNECTED : WAITING_AGENT;
-    if (state == WAITING_AGENT) {
-      destroy_entities();
-    };
-    break;
-  case AGENT_CONNECTED:
-    EXECUTE_EVERY_N_MS(1000,
-                       state = (RMW_RET_OK == rmw_uros_ping_agent(1000, 5))
+      break;
+    case AGENT_AVAILABLE:
+      state = (true == create_entities()) ? AGENT_CONNECTED : WAITING_AGENT;
+      if (state == WAITING_AGENT) {
+        destroy_entities();
+      };
+      break;
+    case AGENT_CONNECTED:
+      EXECUTE_EVERY_N_MS(1000,
+                         state = (RMW_RET_OK == rmw_uros_ping_agent(1000, 5))
                                    ? AGENT_CONNECTED
                                    : AGENT_DISCONNECTED;);
-    if (state == AGENT_CONNECTED) {
-      rclc_executor_spin_some(&executor, RCL_US_TO_NS(10));
-    }
-    break;
-  case AGENT_DISCONNECTED:
-    destroy_entities();
-    state = WAITING_AGENT;
-    break;
-  default:
-    break;
+      if (state == AGENT_CONNECTED) {
+        rclc_executor_spin_some(&executor, RCL_US_TO_NS(10));
+      }
+      break;
+    case AGENT_DISCONNECTED:
+      destroy_entities();
+      state = WAITING_AGENT;
+      break;
+    default:
+      break;
   }
 
   if (state == AGENT_CONNECTED) {
