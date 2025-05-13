@@ -64,7 +64,7 @@ const int PIN_RENCA = 23;
 const int LED_PIN = 13;
 
 // --- Configuration ---
-#define ROS 1  // 0 for Teensy stand alone, 1 for ROS based firmware
+#define ROS 0  // 0 for Teensy stand alone, 1 for ROS based firmware
 #define PRINT_MOVES 0
 
 // --- Conditional Includes and Serial Definition ---
@@ -81,7 +81,9 @@ const int LED_PIN = 13;
 #include <stdio.h>
 #include <geometry_msgs/msg/twist.h>
 
-#define SERIAL_OUT SerialUSB1  // Use USB Serial for ROS
+// For ROS, SerialUSB0 is used for communication with microROS agent
+// and  SerialUSB1 is used for debugging output.
+#define SERIAL_OUT SerialUSB1
 
 #else                      // !ROS
 #define SERIAL_OUT Serial  // Use default Serial for non-ROS
@@ -175,16 +177,18 @@ public:
 
 // --- Motor Control Class (Common) ---
 class MotorControl {
-private:
-  uint32_t lastEncTime;
-  int8_t lastEnc;
-  int32_t counter;
-  // int32_t lastCounter; // Removed as unused
-  bool sawEdge;
+public:  // Made public for ISR access, ensure volatile
+  volatile uint32_t lastEncTime;
+  volatile int8_t lastEnc;  // Stores the last combined A/B state (0,1,2,3)
+  volatile int32_t counter;
+  volatile bool sawEdge;
 
   float lastSpeed;
   float targetSpeed;
   float mpwm;  // Internal PID output state
+
+  int32_t prevCounterForSpeed;  // Store counter from previous motionUpdate
+  uint32_t prevTimeForSpeed;    // Store time from previous motionUpdate
 
   const int ciPinCurrent;
   const int ciPinEncA;
@@ -195,8 +199,8 @@ private:
   int msgcnt;
 
   // Constants used only internally
-  static constexpr float CURRENT_SCALE = 0.0064f;
-  static constexpr float MAX_CURRENT = 2.0f;
+  static constexpr float CURRENT_SCALE = 0.0064f;  // .5V per amp, 3.3V ref, 1024 counts, so 3.3V / 1024 counts / .5V/A = 6.4mA/count
+  static constexpr float MAX_CURRENT = 3.0f;
   static constexpr float MAX_ACCELERATION = 2.0f;  // m/s^2 (Currently unused)
 
   void applyPWM(int pwmValue) {
@@ -217,7 +221,7 @@ public:  // Public interface and constants
   static constexpr float COUNTS_PER_REV = 1440.0f;
   static constexpr float WHEEL_DIAMETER = 0.070f;  // meters
   static constexpr float METERS_PER_COUNT = (M_PI * WHEEL_DIAMETER) / COUNTS_PER_REV;
-  static constexpr float MAX_SPEED = 1.0f;  // m/s
+  static constexpr float MAX_SPEED = 2.0f;  // m/s
 
   // --- Public Member Objects ---
   PidControl pid;
@@ -228,22 +232,31 @@ public:  // Public interface and constants
       ciPwmA(pinPwmA), ciPwmB(pinPwmB) {
     resetCounter();  // Initialize state in constructor via reset
     msgcnt = 0;
+    prevCounterForSpeed = 0;      // Initialized by resetCounter if called after member init
+    prevTimeForSpeed = micros();  // Initialized by resetCounter
   }
 
   // --- Public Methods ---
   int32_t getCounter() const {
-    return counter;
+    int32_t tempCounter;
+    noInterrupts();
+    tempCounter = counter;
+    interrupts();
+    return tempCounter;
   }
   float getSpeed() const {
     return lastSpeed;
   }
+
   float getTargetSpeed() const {
     return targetSpeed;
   }
 
   void setTargetSpeed(float speed) {
     // Constrain speed to the public MAX_SPEED limit
-    speed = constrain(speed, -MAX_SPEED, MAX_SPEED);
+    // Constrain the motor maximum speed.  There is also a limit in RobotState which
+    // should be the robot speed limit.
+    speed = constrain(speed, -MotorControl::MAX_SPEED, MotorControl::MAX_SPEED);
 
     // Acceleration limiting (optional, currently commented out)
     // float dt = 0.01f; // Assumed update rate for accel limit
@@ -267,22 +280,30 @@ public:  // Public interface and constants
   }
 
   void resetCounter() {
-    noInterrupts();  // Ensure atomic update if using interrupts later
+    noInterrupts();
     counter = 0;
-    // lastCounter = 0; // Removed as unused
+    lastEncTime = micros();
+    // Initialize lastEnc based on current pin readings.
+    // This is crucial if reset is called while interrupts might be active.
+    lastEnc = (digitalRead(ciPinEncA) ? 2 : 0) | (digitalRead(ciPinEncB) ? 1 : 0);
+    sawEdge = false;
+    // Reset speed calculation variables
+    prevCounterForSpeed = counter;  // After counter itself is reset
     interrupts();
+
+    // These are not shared with ISRs, so can be set outside critical section
     lastSpeed = 0;
     targetSpeed = 0;
     mpwm = 0;
-    lastEncTime = micros();
-    lastEnc = 0;  // Initialize encoder state
-    sawEdge = false;
     pid.reset();
+    // prevTimeForSpeed is for speed calculation interval, should be updated carefully
+    // Setting it here aligns it with the reset.
+    prevTimeForSpeed = lastEncTime;  // Align with lastEncTime from critical section
   }
 
   void readCurrent() {
     int ocm = analogRead(ciPinCurrent);
-    float current = ocm * CURRENT_SCALE;  // Uses private constant
+    float current = ocm * CURRENT_SCALE;  // convert to amps.
 
     static float lastCurrentL = 0, lastCurrentR = 0;  // Track separately
     float &lastCurrent = (ciPinCurrent == PIN_LD_OCM) ? lastCurrentL : lastCurrentR;
@@ -310,66 +331,6 @@ public:  // Public interface and constants
   }
 
   /**
- * Reads the quadrature encoder values to determine the current position and movement
- * direction of the motor. The function calculates the encoder state based on the digital
- * inputs and determines the direction of movement using an XOR method. If there is a change
- * in encoder state, it updates the counter and calculates the speed of movement in meters
- * per second. Speed calculation is skipped for very fast state transitions (to filter noise)
- * and on the first read after a timer rollover. The function also updates the last encoder
- * state and time regardless of movement.
- */
-  void readSensor() {
-    // Read quadrature encoder - This is common logic
-    // State: A B -> val
-    //        0 0 -> 0
-    //        0 1 -> 1
-    //        1 1 -> 3
-    //        1 0 -> 2
-    int8_t current_enc_val = (digitalRead(ciPinEncA) ? 2 : 0) | (digitalRead(ciPinEncB) ? 1 : 0);
-    // XOR method: (last_A ^ current_B) - (current_A ^ last_B) gives direction change (-1, 0, +1)
-    int8_t last_A = (lastEnc >> 1) & 1;
-    int8_t last_B = lastEnc & 1;
-    int8_t current_A = (current_enc_val >> 1) & 1;
-    int8_t current_B = current_enc_val & 1;
-
-    int8_t dir = (last_A ^ current_B) - (current_A ^ last_B);
-
-    if (dir != 0) {  // Only update if there was a change
-      auto now = micros();
-      auto dt = now - lastEncTime;
-
-      noInterrupts();  // Protect counter access
-      counter += dir;
-      interrupts();
-
-      if (dt > 100) {  // Avoid calculating speed on very fast transitions (noise) or first read
-        // Calculate speed in m/s using the public constant
-        float speed = METERS_PER_COUNT * dir / (dt * 1e-6f);
-        lastSpeed = speed;  // Update measured speed
-        sawEdge = true;     // We saw movement
-      } else if (dt == 0) {
-        // First edge or timer rollover, don't calculate speed
-      }
-
-      lastEncTime = now;
-
-#if PRINT_MOVES > 2  // Make encoder printing highest verbosity
-      SERIAL_OUT.print("Encoder ");
-      SERIAL_OUT.print((ciPinCurrent == PIN_LD_OCM) ? 'L' : 'R');
-      SERIAL_OUT.print(": state=");
-      SERIAL_OUT.print(current_enc_val);
-      SERIAL_OUT.print(" dir=");
-      SERIAL_OUT.print(dir);
-      SERIAL_OUT.print(" dt=");
-      SERIAL_OUT.print(dt);
-      SERIAL_OUT.print(" speed=");
-      SERIAL_OUT.println(lastSpeed);
-#endif
-    }
-    lastEnc = current_enc_val;  // Update last state regardless of movement
-  }
-
-  /**
    * Update the motor control for a single motor, using the PID controller to
    * adjust the PWM output based on the target speed and the measured speed.
    *
@@ -388,24 +349,44 @@ public:  // Public interface and constants
    * Debug output is printed periodically if the motor is moving.
    */
   void motionUpdate() {
-    // Common logic: Update PID based on target vs measured speed
-    if (!sawEdge) {
-      // If no edges seen since last update, assume speed is zero
-      // Check time elapsed too? If dt is large, speed is definitely zero.
-      auto now = micros();
-      if (now - lastEncTime > 50000) {  // 50ms timeout for zero speed
-        lastSpeed = 0;
-      }
+    uint32_t currentTime = micros();
+
+    int32_t currentCounter;
+    uint32_t currentLastEncTime;
+
+    noInterrupts();                    // Protect reads of volatile variables shared with ISRs
+    currentCounter = counter;          // Copy volatile counter
+    currentLastEncTime = lastEncTime;  // Copy volatile time
+    // The sawEdge flag (set by encoder ISRs) is reset to false at the
+    // beginning of each motionUpdate cycle.
+    sawEdge = false;
+    interrupts();
+    // Calculate speed based on counts over the motionUpdate interval
+    float dtSpeedCalc = (currentTime - prevTimeForSpeed) * 1e-6f;  // in seconds
+    int32_t deltaCount = currentCounter - prevCounterForSpeed;
+
+
+    if (dtSpeedCalc > 1e-6f) {  // Avoid division by zero or tiny dt
+      lastSpeed = (static_cast<float>(deltaCount) * METERS_PER_COUNT) / dtSpeedCalc;
+    } else if (currentCounter == prevCounterForSpeed) {
+      // If no time passed for robust calculation AND no counts,
+      // rely on the timeout below to force zero if truly stopped.
     }
-    sawEdge = false;  // Reset edge flag for next interval
+    // else: dtSpeedCalc is too small, but counts might have changed (very fast ticks).
+    // lastSpeed would retain its value from the previous valid calculation.
+
+    // Robust zero-speed detection:
+    // If counter hasn't changed since last motionUpdate AND >50ms since *any* edge.
+    if ((currentCounter == prevCounterForSpeed) && (currentTime - currentLastEncTime > 50000)) {
+      lastSpeed = 0.0f;
+    }
+
+    // Update history for the next speed calculation cycle
+    prevCounterForSpeed = currentCounter;
+    prevTimeForSpeed = currentTime;
 
     float err = targetSpeed - lastSpeed;
-    float pidOutput = pid.update(err);  // Get PID adjustment
-
-    // Apply PID output to the internal PWM state 'mpwm'
-    mpwm = pidOutput;  // Direct PID output (scaled -1 to 1)
-
-    // Limit mpwm (already done by pid.update's constrain, but good practice)
+    mpwm = pid.update(err);  // Get PID adjustment
     mpwm = constrain(mpwm, -1.0, 1.0);
 
     // Convert PID output (-1.0 to 1.0) to PWM value (-255 to 255)
@@ -424,7 +405,7 @@ public:  // Public interface and constants
     if (msgcnt++ > 100 && abs(setspeed) > 0) {  // Only print if moving and periodically
 #if PRINT_MOVES
       char message[100];  // Smaller buffer
-      snprintf(message, sizeof(message), "%c: Tgt=%.2f Cur=%.2f Err=%.2f PID=%.2f PWM=%d",
+      snprintf(message, sizeof(message), "%c: Tgt=%.2f Cur=%.2f Err=%.2f PIDOut=%.2f PWM=%d",
                (ciPinCurrent == PIN_LD_OCM) ? 'L' : 'R',
                targetSpeed, lastSpeed, err, mpwm, setspeed);
       SERIAL_OUT.println(message);
@@ -437,7 +418,6 @@ public:  // Public interface and constants
 
 // --- Point Class (Common) ---
 class Point {
-  // private: // Make members public for easier access from Motion, or keep private and use getters/setters
 public:
   float x, y;
 
@@ -446,24 +426,7 @@ public:
   Point(float ix, float iy) : x(ix), y(iy) {}
   Point(const Point &o) : x(o.x), y(o.y) {}
 
-  float getX() const {
-    return x;
-  }
-  float getY() const {
-    return y;
-  }
-  void setX(float newX) {
-    x = newX;
-  }
-  void setY(float newY) {
-    y = newY;
-  }
-
-  Point &operator+=(const Point &o) {
-    x += o.x;
-    y += o.y;
-    return *this;
-  }
+  // Point &operator+=(const Point &o) {
 };
 
 // --- Motion Class (Common, but used differently by ROS/non-ROS) ---
@@ -522,11 +485,8 @@ public:
     // Update position: Use average distance moved along the new heading
     // The new heading is approximately the old heading + deltaTheta / 2
     float avgTheta = theta + deltaTheta / 2.0f;
-    // Assuming theta=0 is Y-axis (forward) based on original sin/cos usage.
-    // If theta=0 is X-axis (ROS standard REP 103), swap sin/cos below.
-    location.x += deltaDist * sin(avgTheta);
-    location.y += deltaDist * cos(avgTheta);
-
+    location.x += deltaDist * cos(avgTheta);
+    location.y += deltaDist * sin(avgTheta);
 
     // Update heading
     theta += deltaTheta;
@@ -535,10 +495,10 @@ public:
   }
 
   float getX() const {
-    return location.getX();
+    return location.x;
   }
   float getY() const {
-    return location.getY();
+    return location.y;
   }
   float getTheta() const {
     return theta;
@@ -547,7 +507,7 @@ public:
   void print() const {
     char buf[100];
     snprintf(buf, sizeof(buf), "Pose: x=%.3f m, y=%.3f m, theta=%.1f deg",
-             location.getX(), location.getY(), theta * 180.0f / M_PI);
+             location.x, location.y, theta * 180.0f / M_PI);
     SERIAL_OUT.println(buf);
   }
 };
@@ -558,34 +518,31 @@ struct RobotState {
   float targetLinearVelocity = 0.0f;   // m/s
   float targetAngularVelocity = 0.0f;  // rad/s
 
-  // Target positions/heading (used by non-ROS)
-  int32_t leftTargetDistance = 0;
-  int32_t rightTargetDistance = 0;
-  float targetHeading = 0.0f;  // Radians
-
   // Control flags/parameters
-  bool cmdDrive = true;   // Motor enable command
-  bool move = false;      // Flag indicating active motion command (either pos or vel)
-  float maxSpeed = 0.2f;  // Overall max speed limit (m/s) - adjusted default
-  float topSpeed = 0.2f;  // Current operational speed limit (non-ROS) - adjusted default
+  bool cmdDrive = true;  // Motor enable command
+  bool move = false;     // Flag indicating active motion command (either pos or vel)
 
 #if !ROS
   // Non-ROS specific state
   bool isMoving = false;  // Flag for distance-based moves (non-ROS)
   float corr = 0.0f;      // Heading correction value (non-ROS)
+  float maxSpeed = 0.5f;  // Overall robot speed (non-ROS)
+  // Target positions/heading (used by non-ROS)
+  int32_t leftTargetDistance = 0;
+  int32_t rightTargetDistance = 0;
+  float targetHeading = 0.0f;  // Radians
+
 #endif
 
   void reset() {
     targetLinearVelocity = 0.0f;
     targetAngularVelocity = 0.0f;
+    move = false;
+    // cmdDrive = true; // Should reset keep motors enabled? Maybe not.
+#if !ROS
     leftTargetDistance = 0;
     rightTargetDistance = 0;
     targetHeading = 0.0f;
-    move = false;
-    // cmdDrive = true; // Should reset keep motors enabled? Maybe not.
-    // maxSpeed = 0.2f; // Keep configured max speed
-    // topSpeed = 0.2f; // Keep configured top speed
-#if !ROS
     isMoving = false;
     corr = 0.0f;
 #endif
@@ -599,11 +556,54 @@ MotorControl rightMotor(PIN_RD_OCM, PIN_RENCA, PIN_RENCB, PIN_RD_PWM1, PIN_RD_PW
 Motion motion;
 
 
+// --- Interrupt Service Routines for Encoders ---
+// These ISRs directly manipulate the public volatile members of the global motor objects.
+
+void leftEncoderInterrupt() {
+  // Read current state of Left Motor's Encoder A and B pins
+  // Note: digitalRead inside ISR is generally acceptable on fast MCUs like Teensy
+  int8_t current_enc_val = (digitalRead(PIN_LENCA) ? 2 : 0) | (digitalRead(PIN_LENCB) ? 1 : 0);
+
+  // Quadrature logic
+  int8_t last_A_bit = (leftMotor.lastEnc >> 1) & 1;
+  int8_t last_B_bit = leftMotor.lastEnc & 1;
+  int8_t current_A_bit = (current_enc_val >> 1) & 1;
+  int8_t current_B_bit = current_enc_val & 1;
+  int8_t dir = (last_A_bit ^ current_B_bit) - (current_A_bit ^ last_B_bit);
+
+  if (dir != 0) {
+    // Physical forward rotation of the left motor causes its counter to decrease
+    // (due to A leading B with the current XOR logic), so we invert dir here
+    // to make the counter increase for forward motion.
+    leftMotor.counter -= dir;          // Changed from += to -= to flip the direction for the left motor
+    leftMotor.lastEncTime = micros();  // Update time of the edge
+    leftMotor.sawEdge = true;          // Indicate movement
+  }
+  leftMotor.lastEnc = current_enc_val;  // Update last known state
+}
+
+void rightEncoderInterrupt() {
+  // Read current state of Right Motor's Encoder A and B pins
+  int8_t current_enc_val = (digitalRead(PIN_RENCA) ? 2 : 0) | (digitalRead(PIN_RENCB) ? 1 : 0);
+
+  // Quadrature logic
+  int8_t last_A_bit = (rightMotor.lastEnc >> 1) & 1;
+  int8_t last_B_bit = rightMotor.lastEnc & 1;
+  int8_t current_A_bit = (current_enc_val >> 1) & 1;
+  int8_t current_B_bit = current_enc_val & 1;
+  int8_t dir = (last_A_bit ^ current_B_bit) - (current_A_bit ^ last_B_bit);
+
+  if (dir != 0) {
+    rightMotor.counter += dir;
+    rightMotor.lastEncTime = micros();
+    rightMotor.sawEdge = true;
+  }
+  rightMotor.lastEnc = current_enc_val;
+}
 
 
 // --- ROS Specific Section ---
 #if ROS
-
 // ROS-specific Globals
 rcl_subscription_t subscriber;
 geometry_msgs__msg__Twist msg;
@@ -687,7 +687,7 @@ void subscription_callback(const void *msgin) {
 
   digitalWrite(LED_PIN, (robotState.targetLinearVelocity == 0 && robotState.targetAngularVelocity == 0) ? LOW : HIGH);
 
-#if PRINT_MOVES  // Keep debug print conditional
+#if PRINT_MOVES
   SERIAL_OUT.print("Twist Received: LinX=");
   SERIAL_OUT.print(robotState.targetLinearVelocity);
   SERIAL_OUT.print(" AngZ=");
@@ -715,7 +715,7 @@ void handleRosAgentState() {
                                    ? AGENT_CONNECTED
                                    : AGENT_DISCONNECTED;);
       if (state == AGENT_CONNECTED) {
-        rclc_executor_spin_some(&executor, RCL_US_TO_NS(10000));  // Spin more often (10ms)
+        rclc_executor_spin_some(&executor, RCL_US_TO_NS(1000));
       }
       break;
     case AGENT_DISCONNECTED:
@@ -729,10 +729,6 @@ void handleRosAgentState() {
     default:
       break;
   }
-
-  // Optional: Visual indicator for ROS connection state (distinct from command LED)
-  // Could use a different LED or blinking pattern if desired.
-  // For now, just keep the LED tied to receiving non-zero commands via the callback.
 }
 
 #endif  // ROS Specific Section End
@@ -829,7 +825,6 @@ void parseCommand(const char *const cmd) {
       // Use public constant from MotorControl
       if (value > 0.0f && value <= MotorControl::MAX_SPEED) {
         robotState.maxSpeed = value;
-        robotState.topSpeed = value;  // Also update topSpeed used in non-ROS control
         SERIAL_OUT.print("Max speed set to: ");
         SERIAL_OUT.println(value);
         commandProcessed = true;
@@ -882,8 +877,6 @@ void parseCommand(const char *const cmd) {
 void setup() {
   // Common Serial Initialization
   SERIAL_OUT.begin(115200);
-  // A small delay to allow serial monitor to connect, especially for non-USB serial
-  // delay(1000);
   SERIAL_OUT.println("--- Robot Firmware Starting ---");
   SERIAL_OUT.print("ROS Mode: ");
   SERIAL_OUT.println(ROS);
@@ -899,7 +892,7 @@ void setup() {
   SERIAL_OUT.println("Waiting for micro-ROS Agent...");
 #else
   // Non-ROS Specific Setup
-  pinMode(LED_PIN, OUTPUT);  // Still use LED for status maybe?
+  pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, LOW);
   SERIAL_OUT.println("Running in Standalone Mode.");
   // Configure differential PID (only used in non-ROS)
@@ -916,6 +909,16 @@ void setup() {
   pinMode(PIN_LENCB, INPUT_PULLUP);
   pinMode(PIN_RENCA, INPUT_PULLUP);
   pinMode(PIN_RENCB, INPUT_PULLUP);
+
+  // Initialize lastEnc states BEFORE attaching interrupts
+  // This ensures the first interrupt call has a valid previous state.
+  leftMotor.lastEnc = (digitalRead(PIN_LENCA) ? 2 : 0) | (digitalRead(PIN_LENCB) ? 1 : 0);
+  rightMotor.lastEnc = (digitalRead(PIN_RENCA) ? 2 : 0) | (digitalRead(PIN_RENCB) ? 1 : 0);
+  uint32_t now = micros();
+  leftMotor.lastEncTime = now;
+  rightMotor.lastEncTime = now;
+  leftMotor.sawEdge = false;
+  rightMotor.sawEdge = false;
 
   // Enable motor drive outputs
   pinMode(PIN_XD_EN, OUTPUT);
@@ -935,21 +938,28 @@ void setup() {
   // These values likely need tuning!
   leftMotor.pid.setLimits(1.0, 0.5);      // Max output, max integral sum
   leftMotor.pid.setFiltering(0.01, 0.1);  // Deadband, D filter coeff
-  leftMotor.pid.P = 1.5;                  // Increased P gain example
-  leftMotor.pid.I = 0.1;                  // Small I gain example
-  leftMotor.pid.D = 0.01;                 // Small D gain example
+  leftMotor.pid.P = 8.0;
+  leftMotor.pid.I = 0.8;
+  leftMotor.pid.D = 0.00;
 
   rightMotor.pid.setLimits(1.0, 0.5);
   rightMotor.pid.setFiltering(0.01, 0.1);
-  rightMotor.pid.P = 1.5;  // Should be similar to left
-  rightMotor.pid.I = 0.1;
-  rightMotor.pid.D = 0.01;
+  rightMotor.pid.P = 8.0;
+  rightMotor.pid.I = 0.8;
+  rightMotor.pid.D = 0.00;
 
   // Reset state
   leftMotor.resetCounter();
   rightMotor.resetCounter();
   motion.reset();
   robotState.reset();
+
+  // Attach interrupts for encoders
+  // Note: digitalPinToInterrupt() is necessary for mapping pin numbers to interrupt numbers.
+  attachInterrupt(digitalPinToInterrupt(PIN_LENCA), leftEncoderInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_LENCB), leftEncoderInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_RENCA), rightEncoderInterrupt, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(PIN_RENCB), rightEncoderInterrupt, CHANGE);
 
   // I2C Setup (Common - Assuming IMU or other I2C device)
   SERIAL_OUT.println("Initializing I2C and IMU...");
@@ -1062,14 +1072,14 @@ void drivecontrol() {
 
   if (abs(leftError) > stopThreshold) {
     float speedFactor = constrain(static_cast<float>(abs(leftError)) / slowDownThreshold, 0.1f, 1.0f);  // Scale speed
-    leftVelocity = robotState.topSpeed * speedFactor * ((leftError > 0) ? 1.0f : -1.0f);
+    leftVelocity = robotState.maxSpeed * speedFactor * ((leftError > 0) ? 1.0f : -1.0f);
   } else {
     leftVelocity = 0.0f;  // Stop if close enough
   }
 
   if (abs(rightError) > stopThreshold) {
     float speedFactor = constrain(static_cast<float>(abs(rightError)) / slowDownThreshold, 0.1f, 1.0f);  // Scale speed
-    rightVelocity = robotState.topSpeed * speedFactor * ((rightError > 0) ? 1.0f : -1.0f);
+    rightVelocity = robotState.maxSpeed * speedFactor * ((rightError > 0) ? 1.0f : -1.0f);
   } else {
     rightVelocity = 0.0f;  // Stop if close enough
   }
@@ -1101,24 +1111,27 @@ void drivecontrol() {
       leftVelocity -= correctionAmount;
       rightVelocity += correctionAmount;
     }
+#if PRINT_MOVES > 2
     if (abs(robotState.corr) > 0.01) {  // Debug print for correction
       SERIAL_OUT.print("Heading Err: ");
       SERIAL_OUT.print(headingError * 180.0f / M_PI);
       SERIAL_OUT.print(" Corr: ");
       SERIAL_OUT.println(robotState.corr);
     }
+#endif
   } else {
     // Not doing a forward move or move is complete, reset correction
     robotState.corr = 0;
     differential.reset();  // Reset PID if not actively correcting heading
   }
-
-#endif  // ROS / !ROS
-
-  // Apply final speed limits (using RobotState maxSpeed) and set motor targets
+  // Apply final speed limits (using RobotState maxSpeed)
   leftVelocity = constrain(leftVelocity, -robotState.maxSpeed, robotState.maxSpeed);
   rightVelocity = constrain(rightVelocity, -robotState.maxSpeed, robotState.maxSpeed);
 
+#endif  // ROS / !ROS
+
+
+  // set motor speeds
   leftMotor.setTargetSpeed(leftVelocity);
   rightMotor.setTargetSpeed(rightVelocity);
 }
@@ -1127,14 +1140,8 @@ void drivecontrol() {
 void loop() {
   const auto nowMicros = micros();
 
-  // --- Sensor Reading ---
-  // Should ideally be done at a high, consistent rate, maybe interrupt driven?
-  // For now, call them frequently in the loop.
-  leftMotor.readSensor();
-  rightMotor.readSensor();
-  // Consider reading current less frequently if needed
-  // leftMotor.readCurrent();
-  // rightMotor.readCurrent();
+  leftMotor.readCurrent();
+  rightMotor.readCurrent();
 
   // --- Periodic Updates ---
   static auto nextMotionUpdate = nowMicros;
@@ -1193,11 +1200,8 @@ void loop() {
     // Assuming a voltage divider: Vbat -> R1 -> ADC_PIN -> R2 -> GND
     // Voltage = ADC_reading * (AREF / ADC_resolution) * (R1 + R2) / R2
     // Example: Teensy 3.3V AREF, 10-bit ADC (1024), R1=10k, R2=10k -> Factor = 3.3/1024 * 2 = 0.006445
-    // Example: Arduino 5V AREF, 10-bit ADC (1024), R1=10k, R2=2k -> Factor = 5.0/1024 * (12/2) = 0.0293
-    // *** ADJUST THE FACTOR BELOW BASED ON YOUR HARDWARE ***
-    // const float VOLTAGE_FACTOR = 0.0293; // Example for 5V Arduino, 10k/2k divider
-    // float voltage = analogRead(PIN_VBAT) * VOLTAGE_FACTOR;
-    int voltage = analogRead(PIN_VBAT);
+    const float VOLTAGE_FACTOR = 0.00967;  // Teensy 3.3V AREF, R!=2M, R2=1M -> Factor = (3.3/1024) * 3 = 0.00967
+    float voltage = analogRead(PIN_VBAT) * VOLTAGE_FACTOR;
     SERIAL_OUT.print("Voltage: ");
     SERIAL_OUT.print(voltage);
     SERIAL_OUT.println(" V");
@@ -1205,7 +1209,4 @@ void loop() {
 
     nextStatusUpdate = (nowMicros / statusUpdateInterval + 1) * statusUpdateInterval;
   }
-
-  // Small delay to prevent loop from running too fast if nothing else blocks
-  // delayMicroseconds(100); // Optional: yield CPU slightly
 }
