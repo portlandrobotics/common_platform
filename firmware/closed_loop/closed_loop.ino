@@ -175,7 +175,27 @@ public:
 };
 
 
-// --- Motor Control Class (Common) ---
+/**
+ * @class MotorControl
+ * @brief Manages all aspects of a single motor's operation.
+ *
+ * This class encapsulates the functionality required to control one motor of the robot.
+ * It handles:
+ * - **Speed Control**: Implements a PID controller to achieve and maintain a target speed.
+ * - **Encoder Feedback**: Reads encoder signals to determine the motor's current speed and
+ *   accumulated rotation (counter). Encoder readings are processed by ISRs which update
+ *   volatile members of this class.
+ * - **PWM Output**: Generates PWM signals to drive the motor based on the PID controller's output.
+ * - **Current Sensing**: Reads analog values from a current sensor to monitor motor current
+ *   and implement overcurrent protection.
+ * - **State Management**: Keeps track of target speed, measured speed, encoder counts,
+ *   and PID state.
+ * - **Physical Properties**: Defines constants related to the motor and wheel, such as
+ *   counts per revolution and wheel diameter, which are used for converting between
+ *   encoder counts and linear distance/speed.
+ *
+ * Instances of this class are created for both the left and right motors of the robot.
+ */
 class MotorControl {
 public:  // Made public for ISR access, ensure volatile
   volatile uint32_t lastEncTime;
@@ -429,6 +449,18 @@ public:
   // Point &operator+=(const Point &o) {
 };
 
+/**
+ * @class Motion
+ * @brief Manages the robot's odometry, tracking its position and orientation.
+ *
+ * This class uses encoder readings from the left and right wheels to estimate
+ * the robot's movement. It calculates the change in position (x, y coordinates)
+ * and orientation (theta angle) based on a differential drive model.
+ * The class provides methods to update the pose with new encoder data,
+ * reset the pose to the origin, and retrieve the current pose components.
+ * It also includes a constant for the robot's track width, which is crucial
+ * for accurate odometry calculations.
+ */
 // --- Motion Class (Common, but used differently by ROS/non-ROS) ---
 class Motion {
 private:
