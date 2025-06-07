@@ -89,12 +89,6 @@ const int LED_PIN = 13;
 #define SERIAL_OUT Serial  // Use default Serial for non-ROS
 #endif                     // ROS
 
-// --- Common Definitions ---
-#define RENC 0
-#define RMOT RENC
-#define LENC 1
-#define LMOT LENC
-
 // --- PID Control Class (Common) ---
 class PidControl {
 private:
@@ -201,7 +195,6 @@ public:  // Made public for ISR access, ensure volatile
   volatile uint32_t lastEncTime;
   volatile int8_t lastEnc;  // Stores the last combined A/B state (0,1,2,3)
   volatile int32_t counter;
-  volatile bool sawEdge;
 
   float lastSpeed;
   float targetSpeed;
@@ -306,7 +299,6 @@ public:  // Public interface and constants
     // Initialize lastEnc based on current pin readings.
     // This is crucial if reset is called while interrupts might be active.
     lastEnc = (digitalRead(ciPinEncA) ? 2 : 0) | (digitalRead(ciPinEncB) ? 1 : 0);
-    sawEdge = false;
     // Reset speed calculation variables
     prevCounterForSpeed = counter;  // After counter itself is reset
     interrupts();
@@ -377,9 +369,6 @@ public:  // Public interface and constants
     noInterrupts();                    // Protect reads of volatile variables shared with ISRs
     currentCounter = counter;          // Copy volatile counter
     currentLastEncTime = lastEncTime;  // Copy volatile time
-    // The sawEdge flag (set by encoder ISRs) is reset to false at the
-    // beginning of each motionUpdate cycle.
-    sawEdge = false;
     interrupts();
     // Calculate speed based on counts over the motionUpdate interval
     float dtSpeedCalc = (currentTime - prevTimeForSpeed) * 1e-6f;  // in seconds
@@ -629,7 +618,6 @@ void leftEncoderInterrupt() {
     // to make the counter increase for forward motion.
     leftMotor.counter -= dir;          // Changed from += to -= to flip the direction for the left motor
     leftMotor.lastEncTime = micros();  // Update time of the edge
-    leftMotor.sawEdge = true;          // Indicate movement
   }
   leftMotor.lastEnc = current_enc_val;  // Update last known state
 }
@@ -648,7 +636,6 @@ void rightEncoderInterrupt() {
   if (dir != 0) {
     rightMotor.counter += dir;
     rightMotor.lastEncTime = micros();
-    rightMotor.sawEdge = true;
   }
   rightMotor.lastEnc = current_enc_val;
 }
@@ -969,8 +956,6 @@ void setup() {
   uint32_t now = micros();
   leftMotor.lastEncTime = now;
   rightMotor.lastEncTime = now;
-  leftMotor.sawEdge = false;
-  rightMotor.sawEdge = false;
 
   // Enable motor drive outputs
   pinMode(PIN_XD_EN, OUTPUT);
