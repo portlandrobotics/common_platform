@@ -544,7 +544,27 @@ public:
   }
 };
 
-// --- Robot State (Common structure, different usage) ---
+/**
+ * @struct RobotState
+ * @brief Holds the robot's motion state, control flags, and target parameters.
+ *
+ * This struct encapsulates all relevant state information for robot motion control,
+ * including target velocities, control flags, and (in non-ROS builds) additional
+ * fields for distance-based moves and heading correction.
+ *
+ * Fields:
+ * - targetLinearVelocity: Target linear velocity in meters per second.
+ * - targetAngularVelocity: Target angular velocity in radians per second.
+ * - cmdDrive: Motor enable command flag.
+ * - move: Indicates if an active motion command is present.
+ * - isMoving: (non-ROS) True if a distance-based move is in progress.
+ * - corr: (non-ROS) Heading correction value.
+ * - maxSpeed: (non-ROS) Maximum robot speed.
+ * - leftTargetDistance, rightTargetDistance: (non-ROS) Target distances for each wheel.
+ * - targetHeading: (non-ROS) Target heading in radians.
+ *
+ * The reset() method clears motion commands and resets state fields.
+ */
 struct RobotState {
   // Target velocities (used by ROS, can be calculated in non-ROS)
   float targetLinearVelocity = 0.0f;   // m/s
