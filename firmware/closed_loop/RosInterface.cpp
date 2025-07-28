@@ -70,7 +70,7 @@ void subscription_callback(const void *msgin, void *context) {
 #endif
 }
 
-// ROS-specific function: Create ROS entities
+// Create ROS entities
 bool create_entities(void *context) {
   allocator = rcl_get_default_allocator();
 
@@ -87,7 +87,7 @@ bool create_entities(void *context) {
   return true;
 }
 
-// ROS-specific function: Destroy ROS entities
+// Destroy ROS entities
 void destroy_entities() {
   rmw_context_t *rmw_context = rcl_context_get_rmw_context(&support.context);
   (void)rmw_uros_set_context_entity_destroy_session_timeout(rmw_context, 0);
@@ -105,33 +105,34 @@ void handleRosAgentState(void *context) {
   switch (currentRosAgentStatus) {
 
   case WAITING_AGENT:
+    // Use ping to discover the agent when not connected
     EXECUTE_EVERY_N_MS(500, currentRosAgentStatus =
                                 (RMW_RET_OK == rmw_uros_ping_agent(100, 1))
                                     ? AGENT_AVAILABLE
                                     : WAITING_AGENT;);
     break;
   case AGENT_AVAILABLE:
+    // Agent is available, so create all the ROS entities
     currentRosAgentStatus =
         (true == create_entities(context)) ? AGENT_CONNECTED : WAITING_AGENT;
     if (currentRosAgentStatus == WAITING_AGENT) {
-      destroy_entities(); // Clean up if connection failed
+      destroy_entities(); // Clean up if creation failed
     };
     break;
-  case AGENT_CONNECTED:
-    EXECUTE_EVERY_N_MS(
-        200, // Check connection more often?
-        currentRosAgentStatus =
-            (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) // Faster ping
-                ? AGENT_CONNECTED
-                : AGENT_DISCONNECTED;);
+  case AGENT_CONNECTED: {
+    EXECUTE_EVERY_N_MS(200, currentRosAgentStatus =
+                                (RMW_RET_OK == rmw_uros_ping_agent(100, 1))
+                                    ? AGENT_CONNECTED
+                                    : AGENT_DISCONNECTED;);
     if (currentRosAgentStatus == AGENT_CONNECTED) {
-      rclc_executor_spin_some(&executor, RCL_US_TO_NS(1000));
+      rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
     }
-    break;
+  } break;
   case AGENT_DISCONNECTED:
+    // Clean up all entities and return to waiting for the agent
     destroy_entities();
     currentRosAgentStatus = WAITING_AGENT;
-    // Reset speeds when disconnected?
+    // Reset speeds when disconnected
     robotState_ptr->targetLinearVelocity = 0.0f;
     robotState_ptr->targetAngularVelocity = 0.0f;
     robotState_ptr->move = false;
