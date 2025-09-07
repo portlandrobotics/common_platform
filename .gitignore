@@ -1,3 +1,6 @@
 .pio
 .vscode/
+**/.history/**  
+**/build/**
+**/.DS_Store
 
