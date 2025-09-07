@@ -67,7 +67,7 @@ const int LED_PIN = 13;
 #include "PidControl.h"
 #include "MotorControl.h"
 #include "RobotState.h"
-#include "Motion.h" // Include the new Motion header
+#include "Motion.h"
 
 #include <Wire.h>
 // #include <math.h>
@@ -339,7 +339,6 @@ void setup() {
   analogWrite(PIN_RD_PWM2, 0);
   analogWrite(PIN_LD_PWM1, 0);
   analogWrite(PIN_LD_PWM2, 0);
-
   // Configure Motor PIDs (Common)
   // These values likely need tuning!
   leftMotor.pid.setLimits(1.0, 0.5);      // Max output, max integral sum
@@ -367,7 +366,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(PIN_RENCA), rightEncoderInterrupt, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PIN_RENCB), rightEncoderInterrupt, CHANGE);
 
-  // I2C Setup (Common - Assuming IMU or other I2C device)
+  // I2C Setup (Common)
   SERIAL_OUT.println("Initializing I2C and IMU...");
   Wire.begin();
   Wire.beginTransmission(0x68);  // MPU6050 default address
