@@ -20,6 +20,8 @@ enum RosAgentStatus {
   AGENT_DISCONNECTED
 };
 
+extern RosAgentStatus currentRosAgentStatus;
+
 void setup_ROS();
 void handleRosAgentState(void *context);
 #endif

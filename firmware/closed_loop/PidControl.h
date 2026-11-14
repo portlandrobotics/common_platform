@@ -12,7 +12,7 @@ private:
   float filterCoeff = 0.1;  // Derivative low-pass filter coefficient (0-1)
   float lastDeriv = 0;      // Last derivative value for filtering
 public:
-  float P = 1, I = .1, D = .1;
+  float P = 0.5, I = 0.1, D = 0.1;
 
   PidControl();
   void reset();

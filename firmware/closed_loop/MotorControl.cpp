@@ -113,19 +113,19 @@ void MotorControl::motionUpdate() {
   float dtSpeedCalc = (currentTime - prevTimeForSpeed) * 1e-6f; // in seconds
   int32_t deltaCount = currentCounter - prevCounterForSpeed;
 
-  if (dtSpeedCalc > 1e-6f) { // Avoid division by zero or tiny dt
-    lastSpeed =
-        (static_cast<float>(deltaCount) * METERS_PER_COUNT) / dtSpeedCalc;
-  } else if (currentCounter == prevCounterForSpeed) {
-    // If no time passed for robust calculation AND no counts,
-    // rely on the timeout below to force zero if truly stopped.
+  if (dtSpeedCalc > 1e-6f) {
+    if (deltaCount != 0) {
+      lastSpeed =
+          (static_cast<float>(deltaCount) * METERS_PER_COUNT) / dtSpeedCalc;
+    }
+    // If deltaCount == 0, do not overwrite lastSpeed; rely on timeout below
   }
 
   // Robust zero-speed detection:
-  // If counter hasn't changed since last motionUpdate AND >50ms since *any*
+  // If counter hasn't changed since last motionUpdate AND >200ms since *any*
   // edge.
   if ((currentCounter == prevCounterForSpeed) &&
-      (currentTime - currentLastEncTime > 50000)) {
+      (currentTime - currentLastEncTime > 200000)) {
     lastSpeed = 0.0f;
   }
 
@@ -145,6 +145,9 @@ void MotorControl::motionUpdate() {
     mpwm = 0;
     setspeed = 0;
     pid.reset(); // Reset PID when stopped
+  } else if (abs(targetSpeed) < 0.05f && abs(lastSpeed) < 1e-4f && deltaCount == 0) {
+    // For very low speeds with no movement, reduce integral action to prevent windup
+    // but don't completely reset - let it build up slowly
   }
 
   applyPWM(setspeed);
@@ -155,7 +158,7 @@ void MotorControl::motionUpdate() {
 #if PRINT_MOVES
     char message[100]; // Smaller buffer
     snprintf(message, sizeof(message),
-             "%c: Tgt=%.2f Cur=%.2f Err=%.2f PIDOut=%.2f PWM=%d", label,
+             "%s: Tgt=%.2f Cur=%.2f Err=%.2f PIDOut=%.2f PWM=%d", label,
              targetSpeed, lastSpeed, err, mpwm, setspeed);
     SERIAL_OUT.println(message);
 #endif

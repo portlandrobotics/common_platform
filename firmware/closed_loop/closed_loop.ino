@@ -61,7 +61,6 @@ const int PIN_LD_OCM = 20;
 const int PIN_RD_OCM = 21;
 const int PIN_RENCB = 22;
 const int PIN_RENCA = 23;
-const int LED_PIN = 13;
 
 #include "setup.h"  // Include global configuration header
 #include "PidControl.h"
@@ -417,11 +416,18 @@ void printStatus() {
            differential.P, differential.I, differential.D);
   SERIAL_OUT.println(buf);
 #else
-  // Print ROS specific info (if any needed beyond speeds)
-  // TODO: figure out what to do for this message
-  // snprintf(buf, sizeof(buf), "ROS State: %d | Target Lin=%.2f Ang=%.2f",
-  //          currentRosAgentStatus, robotState.targetLinearVelocity, robotState.targetAngularVelocity);
-  // SERIAL_OUT.println(buf);
+  // Print ROS specific info
+  const char *rosStatusStr = "UNKNOWN";
+  switch (currentRosAgentStatus) {
+    case WAITING_AGENT:      rosStatusStr = "WAITING_AGENT"; break;
+    case AGENT_AVAILABLE:    rosStatusStr = "AGENT_AVAILABLE"; break;
+    case AGENT_CONNECTED:    rosStatusStr = "AGENT_CONNECTED"; break;
+    case AGENT_DISCONNECTED: rosStatusStr = "AGENT_DISCONNECTED"; break;
+  }
+  snprintf(buf, sizeof(buf), "ROS Status: %s (%d) | Target Lin=%.2f Ang=%.2f",
+           rosStatusStr, currentRosAgentStatus,
+           robotState.targetLinearVelocity, robotState.targetAngularVelocity);
+  SERIAL_OUT.println(buf);
 #endif
 }
 
@@ -550,18 +556,17 @@ void loop() {
   rightMotor.readCurrent();
 
   // --- Periodic Updates ---
-  static auto nextMotionUpdate = nowMicros;
-  const unsigned long motionUpdateInterval = 10000;  // 10ms = 100Hz
-  if (nowMicros >= nextMotionUpdate) {
+  static uint32_t lastMotionUpdate = nowMicros;
+  const uint32_t motionUpdateInterval = 10000;  // 10ms = 100Hz
+  if (nowMicros - lastMotionUpdate >= motionUpdateInterval) {
+    lastMotionUpdate += motionUpdateInterval;
+
     // Update Odometry
     motion.update(leftMotor.getCounter(), rightMotor.getCounter());
 
     // Update Motor PIDs and apply PWM
     leftMotor.motionUpdate();
     rightMotor.motionUpdate();
-
-    // Calculate next update time, handling potential rollover
-    nextMotionUpdate = (nowMicros / motionUpdateInterval + 1) * motionUpdateInterval;
   }
 
   // --- Drive Control Logic ---
@@ -597,9 +602,10 @@ void loop() {
   }
 
   // --- Periodic Status Output ---
-  static auto nextStatusUpdate = nowMicros;
-  const unsigned long statusUpdateInterval = 1000000;  // 1 second
-  if (nowMicros >= nextStatusUpdate) {
+  static uint32_t lastStatusUpdate = nowMicros;
+  const uint32_t statusUpdateInterval = 1000000;  // 1 second
+  if (nowMicros - lastStatusUpdate >= statusUpdateInterval) {
+    lastStatusUpdate += statusUpdateInterval;
     SERIAL_OUT.println("--- Status Update ---");
     printStatus();
     // Read and print battery voltage
@@ -612,7 +618,5 @@ void loop() {
     SERIAL_OUT.print(voltage);
     SERIAL_OUT.println(" V");
     SERIAL_OUT.println("---------------------");
-
-    nextStatusUpdate = (nowMicros / statusUpdateInterval + 1) * statusUpdateInterval;
   }
 }

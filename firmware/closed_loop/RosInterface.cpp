@@ -2,6 +2,34 @@
 #include "RobotState.h"
 
 #if ROS
+// Override weak clock_gettime from micro_ros_arduino to match the 64-bit time_t
+// ABI expected by Jazzy's precompiled libmicroros.a (built with GCC 11.3) when
+// compiling with Teensyduino 1.57.x (GCC 5.4, 32-bit time_t).
+#if defined(__GNUC__) && (__GNUC__ < 10)
+struct timespec64_abi {
+  int64_t tv_sec;
+  int32_t tv_nsec;
+};
+
+extern "C" int clock_gettime(clockid_t unused, struct timespec *tp) {
+  (void)unused;
+  static uint32_t last_micros = 0;
+  static uint32_t rollover_count = 0;
+
+  uint32_t m = micros();
+  if (m < last_micros) {
+    rollover_count++;
+  }
+  last_micros = m;
+
+  uint64_t total_us = (static_cast<uint64_t>(rollover_count) << 32) | m;
+  struct timespec64_abi *tp64 = reinterpret_cast<struct timespec64_abi *>(tp);
+  tp64->tv_sec = static_cast<int64_t>(total_us / 1000000ULL);
+  tp64->tv_nsec = static_cast<int32_t>((total_us % 1000000ULL) * 1000ULL);
+  return 0;
+}
+#endif
+
 rcl_subscription_t subscriber;
 geometry_msgs__msg__Twist msg;
 rclc_executor_t executor;
@@ -16,11 +44,12 @@ RosAgentStatus currentRosAgentStatus = WAITING_AGENT;
   {                                                                            \
     rcl_ret_t temp_rc = fn;                                                    \
     if ((temp_rc != RCL_RET_OK)) {                                             \
-      error_loop("Failed status on line %d: %d. Aborting.\n", __LINE__,        \
-                 (int)temp_rc);                                                \
+      SERIAL_OUT.printf("ROS init failed on line %d: %d\n", __LINE__,          \
+                        (int)temp_rc);                                         \
       return false;                                                            \
     }                                                                          \
   }
+
 #define EXECUTE_EVERY_N_MS(MS, X)                                              \
   do {                                                                         \
     static volatile int64_t init = -1;                                         \
@@ -33,16 +62,6 @@ RosAgentStatus currentRosAgentStatus = WAITING_AGENT;
     }                                                                          \
   } while (0)
 
-// ROS-specific function: Error loop
-void error_loop(const char *msg, int line, int rc) {
-  SERIAL_OUT.printf("ROS Error at %s:%d code %d\n", __FILE__, line, rc);
-  while (1) {
-    // TODO: Figure out what to do with LED_PIN
-    // digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    delay(100);
-  }
-}
-
 // Twist message callback
 void subscription_callback(const void *msgin, void *context) {
   const geometry_msgs__msg__Twist *msg =
@@ -52,21 +71,15 @@ void subscription_callback(const void *msgin, void *context) {
   // Directly update robot state from twist message
   robotState_ptr->targetLinearVelocity = msg->linear.x;
   robotState_ptr->targetAngularVelocity = msg->angular.z;
-  robotState_ptr->cmdDrive =
+  robotState_ptr->move =
       (robotState_ptr->targetLinearVelocity != 0.0f ||
        robotState_ptr->targetAngularVelocity != 0.0f); // Update move flag
 
-  // TODO: Figure out what to do with LED_PIN
-  // digitalWrite(LED_PIN, (robotState.targetLinearVelocity == 0 &&
-  //                        robotState.targetAngularVelocity == 0)
-  //                           ? LOW
-  //                           : HIGH);
-
 #if PRINT_MOVES
   SERIAL_OUT.print("Twist Received: LinX=");
-  SERIAL_OUT.print(robotState.targetLinearVelocity);
+  SERIAL_OUT.print(robotState_ptr->targetLinearVelocity);
   SERIAL_OUT.print(" AngZ=");
-  SERIAL_OUT.println(robotState.targetAngularVelocity);
+  SERIAL_OUT.println(robotState_ptr->targetAngularVelocity);
 #endif
 }
 
@@ -80,6 +93,7 @@ bool create_entities(void *context) {
   RCCHECK(rclc_subscription_init_default(
       &subscriber, &node,
       ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "cmd_vel"));
+  executor = rclc_executor_get_zero_initialized_executor();
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
   RCCHECK(rclc_executor_add_subscription_with_context(
       &executor, &subscriber, &msg, &subscription_callback, context,
@@ -105,41 +119,59 @@ void handleRosAgentState(void *context) {
   switch (currentRosAgentStatus) {
 
   case WAITING_AGENT:
-    // Use ping to discover the agent when not connected
-    EXECUTE_EVERY_N_MS(500, currentRosAgentStatus =
-                                (RMW_RET_OK == rmw_uros_ping_agent(100, 1))
-                                    ? AGENT_AVAILABLE
-                                    : WAITING_AGENT;);
+    // Ping to discover agent (100ms timeout, 2 attempts)
+    EXECUTE_EVERY_N_MS(500, {
+      if (rmw_uros_ping_agent(100, 2) == RMW_RET_OK) {
+        currentRosAgentStatus = AGENT_AVAILABLE;
+        SERIAL_OUT.println("ROS Agent Available");
+      }
+    });
     break;
+
   case AGENT_AVAILABLE:
-    // Agent is available, so create all the ROS entities
-    currentRosAgentStatus =
-        (true == create_entities(context)) ? AGENT_CONNECTED : WAITING_AGENT;
-    if (currentRosAgentStatus == WAITING_AGENT) {
-      destroy_entities(); // Clean up if creation failed
-    };
+    if (create_entities(context)) {
+      currentRosAgentStatus = AGENT_CONNECTED;
+      SERIAL_OUT.println("ROS Agent Connected");
+    } else {
+      destroy_entities();
+      currentRosAgentStatus = WAITING_AGENT;
+      SERIAL_OUT.println("ROS entity creation failed, returning to WAITING_AGENT");
+    }
     break;
+
   case AGENT_CONNECTED: {
-    EXECUTE_EVERY_N_MS(200, currentRosAgentStatus =
-                                (RMW_RET_OK == rmw_uros_ping_agent(100, 1))
-                                    ? AGENT_CONNECTED
-                                    : AGENT_DISCONNECTED;);
+    EXECUTE_EVERY_N_MS(500, {
+      if (rmw_uros_ping_agent(100, 2) != RMW_RET_OK) {
+        currentRosAgentStatus = AGENT_DISCONNECTED;
+        SERIAL_OUT.println("ROS Agent Disconnected");
+      }
+    });
     if (currentRosAgentStatus == AGENT_CONNECTED) {
-      rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+      // Non-blocking spin so main loop (including motor control) runs smoothly
+      rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1));
     }
   } break;
+
   case AGENT_DISCONNECTED:
-    // Clean up all entities and return to waiting for the agent
     destroy_entities();
     currentRosAgentStatus = WAITING_AGENT;
     // Reset speeds when disconnected
     robotState_ptr->targetLinearVelocity = 0.0f;
     robotState_ptr->targetAngularVelocity = 0.0f;
     robotState_ptr->move = false;
+    SERIAL_OUT.println("Entities destroyed, returning to WAITING_AGENT");
     break;
+
   default:
     break;
   }
+
+  // Update onboard LED to show connection status
+  digitalWrite(LED_PIN, (currentRosAgentStatus == AGENT_CONNECTED) ? HIGH : LOW);
 }
-void setup_ROS() { set_microros_transports(); }
+
+void setup_ROS() {
+  Serial.begin(115200);
+  set_microros_transports();
+}
 #endif

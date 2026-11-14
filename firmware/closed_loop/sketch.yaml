@@ -1,0 +1,14 @@
+profiles:
+  Teensy4:
+    fqbn: teensy:avr:teensy40:usb=serial2,speed=600,opt=o2std,keys=en-us
+    platforms:
+      - platform: teensy:avr (1.57.3)
+        platform_index_url: https://www.pjrc.com/teensy/package_teensy_index.json
+    programmer: ""
+    port: /dev/cu.Maker3-CB00
+    port_config:
+      baudrate: "115200"
+      bits: "8"
+      parity: none
+      stop_bits: one
+# Note: default_profile intentionally omitted so arduino-cli uses installed user libraries (micro_ros_arduino 2.0.8-jazzy)
